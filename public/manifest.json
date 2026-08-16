@@ -1,0 +1,16 @@
+{
+  "name": "PflegeDikat",
+  "short_name": "PflegeDikat",
+  "description": "Sprachgestützte Pflegedokumentation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#00796B",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
