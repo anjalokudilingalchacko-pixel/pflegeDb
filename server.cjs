@@ -4,18 +4,37 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const { AccessToken, RoomServiceClient } = require('livekit-server-sdk');
 
 console.log("-> [SERVER STARTUP] Modules loaded successfully.");
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
-const JWT_SECRET = 'pflege_db_jwt_secret_key_2026_x892';
+// Falls back to the old hardcoded value only in dev — production deployments must set a real
+// JWT_SECRET in .env, since anyone who can read this source (it's committed to git) could
+// otherwise forge tokens for any account, including admin.
+const JWT_SECRET = process.env.JWT_SECRET || 'pflege_db_jwt_secret_key_2026_x892';
+if (!process.env.JWT_SECRET) {
+  console.warn('-> [SECURITY WARNING] JWT_SECRET not set in .env — using the insecure default. Set a real JWT_SECRET before deploying publicly.');
+}
+
+// --- PASSWORD HASHING ---
+function hashPassword(plain) {
+  return bcrypt.hashSync(plain, 10);
+}
+function isHashed(password) {
+  return typeof password === 'string' && /^\$2[aby]\$/.test(password);
+}
+function verifyPassword(plain, stored) {
+  if (!isHashed(stored)) return plain === stored; // legacy plaintext row, migrated lazily below
+  return bcrypt.compareSync(plain, stored);
+}
 
 function generateJWT(payload) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
@@ -185,6 +204,12 @@ try {
   REGISTERED_USERS_DB = REGISTERED_USERS_DB.map(u => seedUser(u));
 } catch (e) {
   REGISTERED_USERS_DB = DEFAULT_USERS_DB;
+}
+// One-time migration: any password still stored in plaintext (seed accounts, or rows written
+// before bcrypt hashing was added) gets hashed in place. Logins are unaffected — the same
+// plaintext password still works, it's just compared against the hash from now on.
+for (const u of REGISTERED_USERS_DB) {
+  if (u.password && !isHashed(u.password)) u.password = hashPassword(u.password);
 }
 fs.writeFileSync(USERS_DB_PATH, JSON.stringify(REGISTERED_USERS_DB, null, 2), 'utf-8');
 
@@ -1018,7 +1043,7 @@ app.post('/api/auth/register', async (req, res) => {
     id: `u-${Date.now()}`,
     name: name.trim(),
     email: cleanEmail,
-    password: password.trim(),
+    password: hashPassword(password.trim()),
     role: userRole,
     title: SELF_REGISTER_ROLES[userRole],
     avatar: SELF_REGISTER_AVATARS[userRole],
@@ -1088,7 +1113,7 @@ app.post('/api/auth/login', (req, res) => {
   if (!foundUser) {
     return res.status(401).json({ error: 'Unbekannte E-Mail-Adresse.' });
   }
-  if (foundUser.password !== password.trim()) {
+  if (!verifyPassword(password.trim(), foundUser.password)) {
     return res.status(401).json({ error: 'Ungültiges Passwort.' });
   }
   if (!foundUser.emailVerified) {
@@ -1200,7 +1225,7 @@ app.post('/api/admin/users', (req, res) => {
     id: `u-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`,
     name: String(name).trim(),
     email: cleanEmail,
-    password: String(password).trim(),
+    password: hashPassword(String(password).trim()),
     role,
     title: ROLE_TITLES[role],
     avatar: ROLE_AVATARS[role],
@@ -1273,7 +1298,7 @@ app.post('/api/admin/users/:id/reset-password', (req, res) => {
   // No email infrastructure exists in this app — the temp password is returned once for the
   // admin to relay to the user directly. A real deployment would email a reset link instead.
   const tempPassword = crypto.randomBytes(5).toString('hex');
-  target.password = tempPassword;
+  target.password = hashPassword(tempPassword);
   saveUsers();
   logAuditEvent(admin, 'reset_password', target.id, 'Passwort zurückgesetzt');
   res.json({ tempPassword });

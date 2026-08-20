@@ -1,0 +1,14 @@
+{
+	email __ACME_EMAIL__
+}
+
+# Main app: React build + Express API + uploads, all served by server.cjs on one port.
+__DOMAIN__ {
+	reverse_proxy localhost:3001
+}
+
+# LiveKit signaling (WebSocket). RTC media itself flows directly to the VPS's public IP over
+# the UDP port range in livekit.yaml — Caddy only fronts the signaling connection.
+livekit.__DOMAIN__ {
+	reverse_proxy localhost:7880
+}
