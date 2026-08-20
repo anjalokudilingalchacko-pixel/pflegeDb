@@ -35,9 +35,19 @@
 }
 
 .pp-breadcrumb {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-family);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pp-breadcrumb-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 /* Top Selector Dropdowns */

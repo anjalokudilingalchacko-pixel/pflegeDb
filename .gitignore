@@ -10,6 +10,11 @@ yarn-debug.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Secrets
+.env
+.env.*
+!.env.example
+
 # Dependencies
 node_modules
 node_modules*
@@ -24,6 +29,13 @@ __pycache__/
 
 # Temp folders
 temp_repo2/
+
+# Local JSON "database" files — runtime/generated data, not source. users_db.json in particular
+# currently stores plaintext passwords and must never be committed.
+*_db.json
+audit_log.json
+public/uploads/*
+!public/uploads/.gitkeep
 
 # Editor directories and files
 .vscode/*

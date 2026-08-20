@@ -10,78 +10,45 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { UserProfileMenu } from "./feedShared";
 
-const GOOGLE_FORM_ID = "1FAIpQLSfHnSFtrLM4Yieqci8S1HzLUEDSRNvVKqPaO_3eNlVEU6rsLg";
-const GOOGLE_SUBMIT_URL = `https://docs.google.com/forms/d/e/${GOOGLE_FORM_ID}/formResponse`;
+const STAFF_TAM_FORM_ID = "1FAIpQLSfPLNd0fFsQzfbl_cIbX74nvrbv6VKqk4cdZcgTGPtq5L9OTQ";
+const STAFF_TAM_FORM_EMBED_URL = `https://docs.google.com/forms/d/e/${STAFF_TAM_FORM_ID}/viewform?embedded=true`;
+const STUDENT_TAM_FORM_ID = "1FAIpQLSf-rs93WpIZgw7eSZ4tThgQuxma8WWmYEs4Cop-qmI4ygwF3A";
+const STUDENT_TAM_FORM_EMBED_URL = `https://docs.google.com/forms/d/e/${STUDENT_TAM_FORM_ID}/viewform?embedded=true`;
 
-// Exact German Likert options matching Google Form entries
-const LIKERT_OPTIONS = [
-  "Stimme überhaupt nicht zu",
-  "Stimme eher nicht zu",
-  "Weder Zustimmung noch Ablehnung",
-  "Stimme eher zu",
-  "Stimme voll und ganz zu"
-];
-
-// Extracted 17 Google Form Questions with entry.XXXXXXXX IDs
-const GOOGLE_FORM_QUESTIONS = [
-  { id: "age", section: "Demografie", entryId: "entry.1764670262", title: "Wie alt sind Sie?", type: "radio", options: ["Unter 20 Jahre", "20–25 Jahre", "26–30 Jahre", "Über 30 Jahre"] },
-  { id: "gender", section: "Demografie", entryId: "entry.2079140417", title: "Welchem Geschlecht fühlen Sie sich zugehörig?", type: "radio", options: ["Weiblich", "Männlich", "Divers", "Keine Angabe"] },
-  { id: "trainingYear", section: "Demografie", entryId: "entry.72583856", title: "In welchem Ausbildungsjahr befinden Sie sich?", type: "radio", options: ["1. Ausbildungsjahr", "2. Ausbildungsjahr", "3. Ausbildungsjahr"] },
-  { id: "q_peou1", section: "Benutzerfreundlichkeit (PEOU)", entryId: "entry.2030386766", title: "Die Benutzeroberfläche einer solchen digitalen Lernplattform wäre für mich einfach und übersichtlich zu bedienen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_peou2", section: "Benutzerfreundlichkeit (PEOU)", entryId: "entry.1747806558", title: "Ich könnte den Umgang mit der Plattform schnell erlernen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_peou3", section: "Benutzerfreundlichkeit (PEOU)", entryId: "entry.1538960267", title: "Lernmaterialien für die Pflegeausbildung wären auf der Plattform leicht zu finden.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_peou4", section: "Benutzerfreundlichkeit (PEOU)", entryId: "entry.1371967989", title: "Die Zusammenführung von Notizen, Aufgaben und digitalen Klassenräumen auf einer Plattform würde mein Lernen erleichtern.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_peou5", section: "Benutzerfreundlichkeit (PEOU)", entryId: "entry.670887880", title: "Ich könnte die Plattform ohne technische Unterstützung nutzen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu1", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.935886833", title: "Eine speziell für die Pflege entwickelte Lernplattform würde meine Lernbedürfnisse unterstützen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu2", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.415918327", title: "Die Plattform würde mir helfen, Lernaufgaben effizient zu bearbeiten.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu3", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.1090384061", title: "Die Plattform würde mich bei der Vorbereitung auf Prüfungen unterstützen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu4", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.1714527860", title: "Die Plattform würde die Zusammenarbeit mit meinen Mitschülerinnen und Mitschülern verbessern.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu5", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.1167740363", title: "Die Plattform würde mir helfen, theoretisches Wissen besser mit der praktischen Pflege zu verknüpfen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_pu6", section: "Pädagogik & Nutzwert (PU)", entryId: "entry.1405211546", title: "Insgesamt halte ich eine solche digitale Lernplattform für nützlich in der Pflegeausbildung.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_sim1", section: "3D & Simulationen", entryId: "entry.980189745", title: "Interaktive 3D-Lerninhalte würden meine Motivation zum Lernen erhöhen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_sim2", section: "3D & Simulationen", entryId: "entry.505183870", title: "Interaktive Simulationen würden mein Selbstvertrauen vor Praxiseinsätzen stärken.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_bi1", section: "Nutzungsabsicht (BI)", entryId: "entry.1906794947", title: "Wenn meine Pflegeschule diese Plattform einführen würde, würde ich sie regelmäßig nutzen.", type: "likert", options: LIKERT_OPTIONS },
-  { id: "q_bi2", section: "Nutzungsabsicht (BI)", entryId: "entry.606897225", title: "Ich wäre bereit, den Großteil meiner papierbasierten Lernunterlagen durch diese digitale Plattform zu ersetzen.", type: "likert", options: LIKERT_OPTIONS }
-];
-
+// Surveys now simply embed the real Google Form (via formUrl) instead of cloning its questions
+// into a hand-built form that POSTs to hardcoded entry.XXXXX field IDs — that approach broke the
+// moment the underlying form changed. Embedding stays accurate automatically.
+const SURVEYS_STORAGE_KEY = "tam_surveys_list_v3";
 const INITIAL_SURVEYS = [
   {
-    id: "survey-1",
-    title: "Clinical Placement Feedback",
-    desc: "Evaluate your recent rotation at St. Jude's General Hospital. Focus on preceptor support and skill application.",
-    tag: "Due in 2 days",
+    id: "survey-tam-staff-2026",
+    title: "TAM-Umfrage: Schulleitung & Lehrkräfte",
+    desc: "Für Schulleitungen, Lehrkräfte und IT-Verantwortliche: organisatorische, pädagogische und wirtschaftliche Anforderungen an eine digitale Pflegelernplattform.",
+    tag: "Neu",
     tagType: "blue",
-    iconType: "bag",
+    iconType: "people",
     estTime: "Est. 5 mins",
     buttonStyle: "primary",
-    isGoogleForms: false
+    isGoogleForms: true,
+    formUrl: STAFF_TAM_FORM_EMBED_URL
   },
   {
-    id: "survey-2",
-    title: "End of Semester Evaluation",
-    desc: "Comprehensive review of Fall 2024 curriculum, simulation lab effectiveness, and faculty instruction.",
-    tag: "Due next week",
+    id: "survey-tam-students-2026",
+    title: "TAM-Umfrage: Auszubildende",
+    desc: "Für Auszubildende im 1.–3. Ausbildungsjahr: deine Erfahrungen mit digitalen Lernmitteln und deine Erwartungen an eine neue Lernplattform (u. a. 3D-Modelle, Simulationen, Fallbeispiele).",
+    tag: "Neu",
     tagType: "teal",
     iconType: "mortarboard",
-    estTime: "Est. 15 mins",
+    estTime: "Est. 4 mins",
     buttonStyle: "primary",
-    isGoogleForms: true
-  },
-  {
-    id: "survey-3",
-    title: "Peer Support Survey",
-    desc: "Provide feedback on the newly implemented student mentorship program for incoming freshmen.",
-    tag: "Optional",
-    tagType: "gray",
-    iconType: "people",
-    estTime: "Est. 3 mins",
-    buttonStyle: "outline",
-    isGoogleForms: false
+    isGoogleForms: true,
+    formUrl: STUDENT_TAM_FORM_EMBED_URL
   }
 ];
 
-export default function TamSurveyView({ onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal }) {
+export default function TamSurveyView({ onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   const [activeNav, setActiveNav] = useState("active_surveys"); // 'dashboard' | 'active_surveys' | 'completed' | 'resources' | 'admin'
 
   // Administrator Heading Customization States
@@ -92,7 +59,7 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
 
   const [surveys, setSurveys] = useState(() => {
     try {
-      const saved = localStorage.getItem("tam_surveys_list");
+      const saved = localStorage.getItem(SURVEYS_STORAGE_KEY);
       return saved ? JSON.parse(saved) : INITIAL_SURVEYS;
     } catch (e) {
       return INITIAL_SURVEYS;
@@ -104,11 +71,14 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
   const [showAddSurveyModal, setShowAddSurveyModal] = useState(false);
   const [activeTakingSurvey, setActiveTakingSurvey] = useState(null);
 
-  // Survey Form Answers
-  const [answers, setAnswers] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitCompleted, setSubmitCompleted] = useState(false);
-  const [completedSurveys, setCompletedSurveys] = useState([]);
+  const [completedSurveys, setCompletedSurveys] = useState(() => {
+    try {
+      const saved = localStorage.getItem("tam_completed_surveys");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   // New Survey Form Input
   const [newSurveyForm, setNewSurveyForm] = useState({
@@ -119,7 +89,8 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
     iconType: "mortarboard",
     estTime: "Est. 5 mins",
     buttonStyle: "primary",
-    isGoogleForms: true
+    isGoogleForms: true,
+    formUrl: ""
   });
 
   useEffect(() => {
@@ -127,12 +98,25 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
     localStorage.setItem("tam_portal_subtitle", portalSubtitle);
     localStorage.setItem("tam_page_heading", pageHeading);
     localStorage.setItem("tam_page_desc", pageDescription);
-    localStorage.setItem("tam_surveys_list", JSON.stringify(surveys));
+    localStorage.setItem(SURVEYS_STORAGE_KEY, JSON.stringify(surveys));
   }, [portalTitle, portalSubtitle, pageHeading, pageDescription, surveys]);
+
+  useEffect(() => {
+    localStorage.setItem("tam_completed_surveys", JSON.stringify(completedSurveys));
+  }, [completedSurveys]);
 
   const handleCreateSurvey = (e) => {
     e.preventDefault();
     if (!newSurveyForm.title.trim()) return;
+
+    // Google Forms only allow being framed via their own "?embedded=true" view URL — normalize
+    // whatever link an admin pastes (share link, viewform?usp=dialog, etc.) into that form.
+    let formUrl = newSurveyForm.formUrl.trim();
+    if (formUrl) {
+      formUrl = formUrl.split(/[?#]/)[0];
+      if (!formUrl.endsWith("/viewform")) formUrl = formUrl.replace(/\/$/, "") + "/viewform";
+      formUrl += "?embedded=true";
+    }
 
     const newObj = {
       id: `survey-${Date.now()}`,
@@ -143,50 +127,18 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
       iconType: newSurveyForm.iconType,
       estTime: newSurveyForm.estTime,
       buttonStyle: newSurveyForm.buttonStyle,
-      isGoogleForms: newSurveyForm.isGoogleForms
+      isGoogleForms: newSurveyForm.isGoogleForms,
+      formUrl
     };
 
     setSurveys(prev => [...prev, newObj]);
     setShowAddSurveyModal(false);
-    setNewSurveyForm({ title: "", desc: "", tag: "Due in 3 days", tagType: "blue", iconType: "mortarboard", estTime: "Est. 5 mins", buttonStyle: "primary", isGoogleForms: true });
+    setNewSurveyForm({ title: "", desc: "", tag: "Due in 3 days", tagType: "blue", iconType: "mortarboard", estTime: "Est. 5 mins", buttonStyle: "primary", isGoogleForms: true, formUrl: "" });
   };
 
-  const handleSelectAnswer = (qId, optionText) => {
-    setAnswers(prev => ({ ...prev, [qId]: optionText }));
-  };
-
-  const handleSubmitForm = async (e) => {
-    if (e) e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const params = new URLSearchParams();
-      GOOGLE_FORM_QUESTIONS.forEach(q => {
-        if (answers[q.id] && q.entryId) {
-          params.append(q.entryId, answers[q.id]);
-        }
-      });
-
-      await fetch(GOOGLE_SUBMIT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params
-      });
-
-      setIsSubmitting(false);
-      setSubmitCompleted(true);
-      if (activeTakingSurvey) {
-        setCompletedSurveys(prev => [...prev, activeTakingSurvey.id]);
-      }
-    } catch (err) {
-      console.warn("Direct POST complete:", err);
-      setIsSubmitting(false);
-      setSubmitCompleted(true);
-      if (activeTakingSurvey) {
-        setCompletedSurveys(prev => [...prev, activeTakingSurvey.id]);
-      }
-    }
+  const handleMarkCompleted = () => {
+    if (activeTakingSurvey) setCompletedSurveys(prev => prev.includes(activeTakingSurvey.id) ? prev : [...prev, activeTakingSurvey.id]);
+    setActiveTakingSurvey(null);
   };
 
   return (
@@ -385,21 +337,31 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAdminEditModal(true)}
-            style={{
-              background: "#f1f5f9",
-              color: "#475569",
-              border: "1px solid #cbd5e1",
-              borderRadius: "8px",
-              padding: "7px 14px",
-              fontSize: "0.8rem",
-              fontWeight: 700,
-              cursor: "pointer"
-            }}
-          >
-            ✏️ Edit Heading (Admin)
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <button
+              onClick={() => setShowAdminEditModal(true)}
+              style={{
+                background: "#f1f5f9",
+                color: "#475569",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                padding: "7px 14px",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                cursor: "pointer"
+              }}
+            >
+              ✏️ Edit Heading (Admin)
+            </button>
+            <UserProfileMenu
+              variant="light"
+              userRole={userRole}
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              onOpenAuthModal={onOpenAuthModal}
+              onOpenAvatarPicker={onOpenAvatarPicker}
+            />
+          </div>
         </div>
 
         {/* ============================================================ */}
@@ -487,11 +449,7 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
                       </span>
                     ) : (
                       <button
-                        onClick={() => {
-                          setSubmitCompleted(false);
-                          setAnswers({});
-                          setActiveTakingSurvey(survey);
-                        }}
+                        onClick={() => setActiveTakingSurvey(survey)}
                         style={{
                           background: survey.buttonStyle === "outline" ? "#ffffff" : "#0047ab",
                           color: survey.buttonStyle === "outline" ? "#0047ab" : "#ffffff",
@@ -535,12 +493,12 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
       {/* ============================================================ */}
       {activeTakingSurvey && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.7)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-          <div style={{ background: "#ffffff", borderRadius: "16px", width: "100%", maxWidth: "750px", maxHeight: "88vh", overflowY: "auto", padding: "32px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px" }}>
+          <div style={{ background: "#ffffff", borderRadius: "16px", width: "100%", maxWidth: "820px", height: "88vh", display: "flex", flexDirection: "column", padding: "24px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", borderBottom: "1px solid #f1f5f9", paddingBottom: "16px", flexShrink: 0 }}>
               <div>
                 <span style={{ fontSize: "0.75rem", background: "#dbeafe", color: "#1d4ed8", padding: "3px 10px", borderRadius: "12px", fontWeight: 700 }}>
-                  GOOGLE FORMS LIVE API
+                  GOOGLE FORMS
                 </span>
                 <h2 style={{ margin: "6px 0 0 0", fontSize: "1.4rem", fontWeight: 800, color: "#0f172a" }}>
                   {activeTakingSurvey.title}
@@ -549,52 +507,24 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
               <button onClick={() => setActiveTakingSurvey(null)} style={{ background: "none", border: "none", fontSize: "1.5rem", color: "#94a3b8", cursor: "pointer" }}>&times;</button>
             </div>
 
-            {!submitCompleted ? (
-              <form onSubmit={handleSubmitForm} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <p style={{ fontSize: "0.9rem", color: "#64748b", margin: 0 }}>
-                  Beantworten Sie die folgenden Fragen. Die Ergebnisse werden beim Klicken auf Absenden direkt an Ihre Google Forms Tabelle übermittelt.
-                </p>
-
-                {GOOGLE_FORM_QUESTIONS.map((q, idx) => (
-                  <div key={q.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "16px" }}>
-                    <div style={{ fontSize: "0.75rem", color: "#0284c7", fontWeight: 800, marginBottom: "4px" }}>
-                      Frage {idx + 1} ({q.section})
-                    </div>
-                    <div style={{ fontSize: "0.92rem", fontWeight: 700, color: "#0f172a", marginBottom: "12px" }}>
-                      {q.title}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {q.options.map(opt => (
-                        <label key={opt} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "8px 12px", background: answers[q.id] === opt ? "#e0f2fe" : "#ffffff", border: answers[q.id] === opt ? "1px solid #0284c7" : "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontSize: "0.85rem", fontWeight: answers[q.id] === opt ? 700 : 400 }}>
-                          <input
-                            type="radio"
-                            name={q.id}
-                            value={opt}
-                            checked={answers[q.id] === opt}
-                            onChange={() => handleSelectAnswer(q.id, opt)}
-                          />
-                          <span>{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "12px" }}>
-                  <button type="button" onClick={() => setActiveTakingSurvey(null)} style={{ padding: "10px 20px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "8px", fontWeight: 700, cursor: "pointer" }}>Abbrechen</button>
-                  <button type="submit" disabled={isSubmitting} style={{ padding: "10px 28px", background: "#0047ab", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: 800, cursor: "pointer" }}>
-                    {isSubmitting ? "Wird eingetragen..." : "Umfrage Absenden 🚀"}
+            {activeTakingSurvey.formUrl ? (
+              <>
+                <iframe
+                  title={activeTakingSurvey.title}
+                  src={activeTakingSurvey.formUrl}
+                  style={{ flex: 1, width: "100%", border: "none", borderRadius: "10px" }}
+                >
+                  Wird geladen…
+                </iframe>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "16px", flexShrink: 0 }}>
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#94a3b8" }}>Deine Antworten werden direkt an Google Forms übermittelt.</p>
+                  <button onClick={handleMarkCompleted} style={{ padding: "10px 20px", background: "#0047ab", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    ✓ Als abgeschlossen markieren
                   </button>
                 </div>
-              </form>
+              </>
             ) : (
-              <div style={{ textAlign: "center", padding: "32px" }}>
-                <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>🎉</div>
-                <h3 style={{ fontSize: "1.5rem", fontWeight: 900, color: "#0f172a", margin: "0 0 8px 0" }}>Vielen Dank!</h3>
-                <p style={{ color: "#64748b", margin: "0 0 20px 0" }}>Ihre Antworten wurden erfolgreich in Google Forms übermittelt.</p>
-                <button onClick={() => setActiveTakingSurvey(null)} style={{ padding: "10px 24px", background: "#0047ab", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: 700, cursor: "pointer" }}>Schließen</button>
-              </div>
+              <div style={{ textAlign: "center", padding: "32px", color: "#64748b" }}>Für diese Umfrage ist noch kein Formular hinterlegt.</div>
             )}
 
           </div>
@@ -698,6 +628,17 @@ export default function TamSurveyView({ onHome, userRole, setUserRole, currentUs
                   placeholder="Evaluate your recent rotation..."
                   value={newSurveyForm.desc}
                   onChange={e => setNewSurveyForm(prev => ({ ...prev, desc: e.target.value }))}
+                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.9rem" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>Google Form Link</label>
+                <input
+                  type="url"
+                  placeholder="https://docs.google.com/forms/d/e/.../viewform"
+                  value={newSurveyForm.formUrl}
+                  onChange={e => setNewSurveyForm(prev => ({ ...prev, formUrl: e.target.value }))}
                   style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.9rem" }}
                 />
               </div>

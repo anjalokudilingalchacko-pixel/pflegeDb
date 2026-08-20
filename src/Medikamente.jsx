@@ -123,43 +123,6 @@ function normalizeDrugData(raw) {
   };
 }
 
-// Simple client-side Markdown to HTML renderer for API advice text
-function parseMarkdownToHtml(md) {
-  if (!md) return "";
-  let html = md;
-  
-  // Clean up existing wrappers to prevent collision
-  html = html.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  
-  // Format headings
-  html = html.replace(/###\s*(.*)/g, '<h3>$1</h3>');
-  html = html.replace(/####\s*(.*)/g, '<h4>$1</h4>');
-  
-  // Format bold text
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
-  // Format alert boxes / warnings (Odoo styling)
-  html = html.replace(/&gt; \[!WARNING\]\s*\n&gt;\s*\*\*([^*]+)\*\*\s*\n&gt;\s*([^\n]+)/g, '<div class="meds-alert-card-danger"><h5>$1</h5><p>$2</p></div>');
-  html = html.replace(/&gt; \[!WARNING\]\s*\n&gt;\s*([^\n]+)/g, '<div class="meds-alert-card-danger"><h5>Achtung</h5><p>$1</p></div>');
-  html = html.replace(/&gt;\s*([^\n]+)/g, '<blockquote>$1</blockquote>');
-  
-  // Format bullet lists
-  html = html.replace(/^\s*-\s*(.*)/gm, '<li>$1</li>');
-  html = html.replace(/^\s*\*\s*(.*)/gm, '<li>$1</li>');
-  // Wrap list items
-  html = html.replace(/(<li>.*<\/li>)/g, '<ul>$1</ul>');
-  // Clean double wrappers
-  html = html.replace(/<\/ul>\s*<ul>/g, '');
-  
-  // Format horizontal rules
-  html = html.replace(/---/g, '<hr />');
-  
-  // Convert newlines to breaks
-  html = html.replace(/\n/g, '<br />');
-  
-  return html;
-}
-
 export default function Medikamente({ onHome }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -196,12 +159,6 @@ export default function Medikamente({ onHome }) {
     storage: false
   });
 
-  // AI Agent States
-  const [aiReport, setAiReport] = useState(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiSteps, setAiSteps] = useState([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-
   const toggleAccordion = (section) => {
     setOpenAccordions(prev => ({
       ...prev,
@@ -216,9 +173,6 @@ export default function Medikamente({ onHome }) {
     setIsLoading(true);
     setErrorMsg('');
     setActiveDrug(null);
-    setAiReport(null);
-    setAiSteps([]);
-    setCurrentStepIndex(-1);
 
     // 1. Check Offline Catalog first
     if (OFFLINE_DRUGS[term]) {
@@ -302,9 +256,6 @@ export default function Medikamente({ onHome }) {
     setSelectedPatient(patient);
     setSelectedMedPlanCard(null);
     setActiveDrug(null);
-    setAiReport(null);
-    setAiSteps([]);
-    setCurrentStepIndex(-1);
     setErrorMsg('');
     setSearchResults([]);
   };
@@ -315,73 +266,11 @@ export default function Medikamente({ onHome }) {
     handleSearch(lookupTerm);
   };
 
-  // Triggers the AI agent simulation from the express backend
-  const requestAiAdvisory = async () => {
-    if (!activeDrug) return;
-    setAiLoading(true);
-    setAiReport(null);
-    setAiSteps([]);
-    setCurrentStepIndex(-1);
-
-    try {
-      const res = await fetch('/api/ai-agent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: activeDrug.name })
-      });
-
-      if (!res.ok) throw new Error("AI Agent Server Fehler");
-
-      const data = await res.json();
-      setAiSteps(data.steps || []);
-      
-      // Step-by-step rendering simulation for realistic agentic feel
-      let currentStep = 0;
-      setCurrentStepIndex(0);
-      const interval = setInterval(() => {
-        currentStep++;
-        if (currentStep < (data.steps || []).length) {
-          setCurrentStepIndex(currentStep);
-        } else {
-          clearInterval(interval);
-          setAiReport(data.response);
-          setAiLoading(false);
-        }
-      }, 500);
-
-    } catch (err) {
-      console.error("AI agent query failed", err);
-      setAiSteps(["Fehler bei der Kontaktaufnahme zum KI-Klinikberater."]);
-      setAiLoading(false);
-    }
-  };
-
-  const handleResetSidebar = () => {
-    setSelectedPatient(null);
-    setSelectedMedPlanCard(null);
-    setActiveDrug(null);
-    setAiReport(null);
-    setAiSteps([]);
-    setCurrentStepIndex(-1);
-    setSearchResults([]);
-  };
-
   return (
     <div className="meds-lookup-workspace">
       
       {/* LEFT SIDEBAR - Patient plans and search */}
       <aside className="meds-sidebar-layout">
-        <div>
-          <div 
-            className="meds-sidebar-title" 
-            style={{ cursor: 'pointer' }} 
-            onClick={onHome || handleResetSidebar}
-            title={onHome ? "Zurück zur Startseite" : ""}
-          >
-            MedManager Pro
-          </div>
-          <div className="meds-sidebar-subtitle">Clinical Portal</div>
-        </div>
 
         {/* Station / Bereich Selection & Patient Quick Selector (Matches PflegeHeute Top-Down Flow Layout) */}
         <div className="meds-search-box-sidebar" style={{ marginBottom: '12px' }}>
@@ -480,9 +369,6 @@ export default function Medikamente({ onHome }) {
                     onClick={() => {
                       setSelectedPatient(null);
                       setActiveDrug(normalizeDrugData(res));
-                      setAiReport(null);
-                      setAiSteps([]);
-                      setCurrentStepIndex(-1);
                     }}
                     style={{ padding: '8px 12px' }}
                   >
@@ -604,10 +490,7 @@ export default function Medikamente({ onHome }) {
         {!isLoading && !errorMsg && !activeDrug && (
           <div className="meds-empty-workspace">
             <span className="material-symbols-outlined" style={{ fontSize: '4rem', color: 'var(--outline-variant)' }}>medication</span>
-            <h3>Klinisches Informationsportal</h3>
-            <p>
-              Wählen Sie links einen **Patienten aus der Simulationskurve** aus, um dessen Medikationsplan einzusehen, oder suchen Sie nach Wirkstoffen, um Dosierungen, Nebenwirkungen und pflegerische Warnhinweise abzurufen.
-            </p>
+            <h3>Medikamente Informationsportal</h3>
           </div>
         )}
 
@@ -824,57 +707,6 @@ export default function Medikamente({ onHome }) {
                       </div>
                     )}
                   </div>
-
-                </div>
-
-                {/* AI CLINICAL ADVISOR SYSTEM */}
-                <div className="meds-ai-card">
-                  <div className="meds-ai-header">
-                    <div className="meds-ai-header-left">
-                      <div className="meds-ai-avatar">🤖</div>
-                      <div className="meds-ai-title">KI-Klinikberater (AI Clinical Advisory)</div>
-                    </div>
-                    <span className="meds-ai-badge">Agentic AI</span>
-                  </div>
-
-                  {!aiLoading && !aiReport && (
-                    <div className="meds-ai-empty">
-                      <p>
-                        Wünschen Sie eine klinische Agenten-Analyse für **{activeDrug.name}**? Die KI durchsucht den lokalen Wissensgraphen, ermittelt Vitalparameter-Grenzwerte und formuliert einen maßgeschneiderten pflegerischen Ratschlag.
-                      </p>
-                      <button className="meds-btn-primary" onClick={requestAiAdvisory}>
-                        <span className="material-symbols-outlined text-[18px]">bolt</span>
-                        KI-Analyse anfordern
-                      </button>
-                    </div>
-                  )}
-
-                  {aiLoading && (
-                    <div className="meds-ai-loading-box">
-                      <div className="meds-ai-loading-title">
-                        <div className="meds-ai-spinner"></div>
-                        KI-Agent verarbeitet Anfrage für {activeDrug.name}...
-                      </div>
-                      <ul className="meds-ai-steps">
-                        {aiSteps.map((step, idx) => {
-                          const isDone = idx < currentStepIndex;
-                          const isActive = idx === currentStepIndex;
-                          return (
-                            <li key={idx} className={`meds-ai-step-item ${isDone ? 'done' : isActive ? 'pending' : 'waiting'}`}>
-                              {step}
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </div>
-                  )}
-
-                  {!aiLoading && aiReport && (
-                    <div 
-                      className="meds-ai-response-rendered" 
-                      dangerouslySetInnerHTML={{ __html: parseMarkdownToHtml(aiReport) }} 
-                    />
-                  )}
 
                 </div>
 

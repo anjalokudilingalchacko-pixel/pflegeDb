@@ -1,112 +1,24 @@
 /**
- * PflegeFeed.jsx — Nursing Social Network, Job Portal & Clinical Library
- * 
- * Re-designed using requested Design Tokens, Typography (Sora + Inter),
- * CSS Grid App Shell, Hand-Drawn Inline SVG Icons, and Interactive Features.
+ * PflegeFeed.jsx — Instagram/Blog-style social feed for nursing students.
+ * Supports status updates, photo posts (multi-image, Instagram-style grid),
+ * and document sharing, backed by the /api/feed/* endpoints in server.cjs.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Icon, PulseSvg, AvatarCircle, StreakBadge, EmptyState,
+  timeAgo, formatFileSize, extractHashtags, fileToDataURL,
+  apiGetPosts, apiCreatePost, apiToggleLike, apiAddComment, apiDeletePost,
+  apiGetStreak, apiSearchUsers, apiSendRequest, apiGetGroups, apiGetFriends
+} from "./feedShared";
+import PostCard from "./FeedPostCard";
+import FeedNetzwerk from "./FeedNetzwerk";
 
-// Inline Hand-Drawn SVG Icon Helper
-function Icon({ name, size = 18, color = "currentColor", strokeWidth = 2, className = "" }) {
-  const paths = {
-    home: '<path d="M4 11 L12 4 L20 11"/><path d="M6 10 V20 H18 V10"/>',
-    briefcase: '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8 V6 a2 2 0 0 1 2-2 h2 a2 2 0 0 1 2 2 v2"/>',
-    file: '<path d="M6 3 H14 L18 7 V21 H6 Z"/><path d="M14 3 V7 H18"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/>',
-    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21 c0-4.4 3.6-8 8-8 s8 3.6 8 8"/>',
-    search: '<circle cx="10" cy="10" r="7"/><line x1="21" y1="21" x2="15.5" y2="15.5"/>',
-    bell: '<path d="M6 10 a6 6 0 0 1 12 0 c0 5 2 6 2 6 H4 s2-1 2-6"/><path d="M10 20 a2 2 0 0 0 4 0"/>',
-    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-    heart: '<path d="M12 21 s-7-4.5-9.5-9 C1 8 3 4 7 4 c2 0 4 1.2 5 3 c1-1.8 3-3 5-3 c4 0 6 4 4.5 8 C19 16.5 12 21 12 21 Z"/>',
-    message: '<path d="M4 4 H20 V16 H8 L4 20 Z"/>',
-    share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.3" y1="10.7" x2="15.7" y2="6.3"/><line x1="8.3" y1="13.3" x2="15.7" y2="17.7"/>',
-    download: '<path d="M12 3 V15 M7 10 L12 15 L17 10"/><path d="M4 19 H20"/>',
-    mappin: '<path d="M12 21 s7-6.5 7-12 a7 7 0 0 0 -14 0 c0 5.5 7 12 7 12 Z"/><circle cx="12" cy="9" r="2.3"/>',
-    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7 V12 L16 14"/>',
-    trending: '<path d="M3 17 L10 10 L14 14 L21 6"/><path d="M15 6 H21 V12"/>',
-    userplus: '<circle cx="9" cy="8" r="4"/><path d="M2 21 c0-4 3-7 7-7 s7 3 7 7"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>',
-    check: '<path d="M4 12 L10 18 L20 6"/>',
-    activity: '<path d="M2 12 H7 L9 6 L13 18 L15 12 H22"/>',
-    badge: '<path d="M12 2 L14.3 3.8 L17.2 3.3 L18.1 6.1 L20.5 7.9 L19.1 10.3 L20.5 12.7 L18.1 14.5 L17.2 17.3 L14.3 16.8 L12 18.6 L9.7 16.8 L6.8 17.3 L5.9 14.5 L3.5 12.7 L4.9 10.3 L3.5 7.9 L5.9 6.1 L6.8 3.3 L9.7 3.8 Z"/><path d="M8.7 12 L11 14.3 L15.3 9.3"/>',
-    bookmark: '<path d="M6 3 H18 V21 L12 17 L6 21 Z"/>',
-    edit: '<path d="M4 20 L4 16 L15.5 4.5 L19.5 8.5 L8 20 Z"/><path d="M13.5 6.5 L17.5 10.5"/>',
-    settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5 V5.5 M12 18.5 V21.5 M2.5 12 H5.5 M18.5 12 H21.5 M5 5 L7.1 7.1 M16.9 16.9 L19 19 M5 19 L7.1 16.9 M16.9 7.1 L19 5"/>',
-    upload: '<path d="M12 21 V9 M7 14 L12 9 L17 14"/><path d="M4 19 H20"/>',
-    x: '<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>',
-    book: '<path d="M4 5 H12 V19 H4 Z"/><path d="M12 5 H20 V19 H12 Z"/><line x1="12" y1="5" x2="12" y2="19"/>',
-    filter: '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2"/>'
-  };
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      dangerouslySetInnerHTML={{ __html: paths[name] || '' }}
-    />
-  );
-}
-
-function PulseSvg() {
-  return (
-    <svg width="120" height="18" viewBox="0 0 120 20" fill="none">
-      <path
-        className="pulse-path"
-        d="M0 10 H30 L36 2 L44 18 L50 10 H62 L68 4 L74 16 L80 10 H120"
-        stroke="var(--teal)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const INITIAL_POSTS = [
-  {
-    id: "p1",
-    name: "Lukas Schmidt",
-    role: "Pflegeschüler im 3. Lehrjahr",
-    time: "2 Std.",
-    color: "#3B82F6",
-    initials: "LS",
-    text: "Erster Tag auf der Intensivstation! Die Einarbeitung war super strukturiert und das Team ist fantastisch. Ich freue mich auf die kommenden Wochen und alles, was ich hier lernen werde.",
-    tags: ["#Pflege", "#Praktikum", "#Intensivpflege"],
-    illustration: true,
-    likes: 38,
-    comments: 6,
-    liked: false
-  },
-  {
-    id: "p2",
-    name: "Dr. med. K. Fischer",
-    role: "Pflegepädagoge",
-    time: "5 Std.",
-    color: "var(--navy)",
-    initials: "KF",
-    text: "Zur Erinnerung: Die neuen Standards für die moderne Wundversorgung sind ab nächster Woche gültig. Ich habe die Zusammenfassung noch einmal angehängt. Bitte lesen!",
-    attachment: { name: "Wundversorgung_Protocol_v2.pdf", meta: "PDF · 1.2 MB" },
-    likes: 24,
-    comments: 5,
-    liked: false
-  }
-];
-
+// ==================== Static demo data (Jobs / Documents pages) ====================
 const TRENDING = [
   { tag: "#Pflegekammer", desc: "Diskussion zur neuen Beitragsordnung" },
-  { tag: "#Fortbildung", desc: "Top 5 Online-Seminare 2024" },
+  { tag: "#Fortbildung", desc: "Top 5 Online-Seminare 2026" },
   { tag: "#Schichtdienst", desc: "Tipps für einen gesunden Schlaf" }
-];
-
-const INITIAL_SUGGESTED = [
-  { id: "s1", name: "Max Bauer", role: "Stationsleitung", color: "#0F766E", initials: "MB", connected: false },
-  { id: "s2", name: "Julia Koch", role: "Wundexpertin ICW", color: "#B45309", initials: "JK", connected: false }
 ];
 
 const JOBS = [
@@ -143,7 +55,7 @@ const DOCUMENTS = [
     iconBg: "#DCEAFE",
     iconColor: "#2563EB",
     badge: "Updated Protocol",
-    title: "2024 Advanced Cardiac Life Support (ACLS) Guidelines",
+    title: "2026 Advanced Cardiac Life Support (ACLS) Guidelines",
     desc: "Comprehensive updated guidelines detailing the algorithmic approach to cardiac emergencies, emphasizing early defibrillation and high-quality CPR.",
     meta: "PDF · 4.2 MB",
     date: null,
@@ -179,7 +91,7 @@ const DOCUMENTS = [
     iconBg: "#DCEAFE",
     iconColor: "#2563EB",
     badge: null,
-    title: "Infection Control Policy 2024",
+    title: "Infection Control Policy 2026",
     desc: "Updated ward hygiene requirements.",
     meta: "PDF · 3.1 MB",
     date: "Oct 12",
@@ -187,67 +99,239 @@ const DOCUMENTS = [
   }
 ];
 
-export default function PflegeFeed({ onHome }) {
-  const [activeNav, setActiveNav] = useState("feed"); // 'feed' | 'jobs' | 'documents' | 'profile'
-  const [posts, setPosts] = useState(INITIAL_POSTS);
-  const [suggested, setSuggested] = useState(INITIAL_SUGGESTED);
+const COMPOSER_MODES = [
+  { key: "status", label: "Status", icon: "edit" },
+  { key: "photo", label: "Foto", icon: "image" },
+  { key: "document", label: "Dokument", icon: "file" }
+];
+
+export default function PflegeFeed({ onHome, currentUser, onOpenAuthModal }) {
+  const me = currentUser || { id: "guest", name: "Gast", title: "Pflegeschüler(in)", role: "student" };
+
+  const [activeNav, setActiveNav] = useState("feed"); // 'feed' | 'netzwerk' | 'jobs' | 'documents' | 'profile'
+
+  // Feed data (backend-backed)
+  const [posts, setPosts] = useState([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState("");
+
+  const [suggested, setSuggested] = useState([]);
+  const [myGroups, setMyGroups] = useState([]);
+  const [friendsCount, setFriendsCount] = useState(null);
+  const [streak, setStreak] = useState(null); // {current, longest, postedToday}
+  const [streakBannerDismissed, setStreakBannerDismissed] = useState(false);
   const [activeDocFilter, setActiveDocFilter] = useState("All Files");
-  const [activeProfileTab, setActiveProfileTab] = useState("posts"); // 'posts' | 'docs' | 'jobs'
+  const [activeProfileTab, setActiveProfileTab] = useState("posts");
 
-  // Modal / Action states
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [newPostText, setNewPostText] = useState("");
+  // Composer
+  const [showComposer, setShowComposer] = useState(false);
+  const [composerMode, setComposerMode] = useState("status");
+  const [composerText, setComposerText] = useState("");
+  const [composerImages, setComposerImages] = useState([]); // [{file, url}]
+  const [composerDoc, setComposerDoc] = useState(null); // {file, name, size}
+  const [composerError, setComposerError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const imageInputRef = useRef(null);
+  const docInputRef = useRef(null);
+
+  // Post interaction UI state
+  const [lightbox, setLightbox] = useState(null); // {images, index}
+  const feedScrollRef = useRef(null);
+
   const [bookmarkedJobs, setBookmarkedJobs] = useState([]);
-
-  // Job Filters
   const [activeJobChips, setActiveJobChips] = useState(["Werkstudent", "Teilzeit", "Berlin (+20km)"]);
   const [distanceKm, setDistanceKm] = useState(20);
 
-  // Like Toggle
-  const handleLike = (id) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, liked: !p.liked, likes: p.liked ? p.likes - 1 : p.likes + 1 } : p));
+  const isLoggedIn = !!localStorage.getItem("pflegedb_jwt_token");
+
+  // ---- Load feed ----
+  useEffect(() => {
+    let cancelled = false;
+    setFeedLoading(true);
+    apiGetPosts()
+      .then(data => { if (!cancelled) { setPosts(data); setFeedError(""); } })
+      .catch(err => { if (!cancelled) setFeedError(err.message); })
+      .finally(() => { if (!cancelled) setFeedLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // ---- Load streak, suggested people & my groups (engagement rail) ----
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let cancelled = false;
+    apiGetStreak().then(data => { if (!cancelled) setStreak(data); }).catch(() => {});
+    apiSearchUsers("")
+      .then(data => { if (!cancelled) setSuggested(data.filter(u => u.friendStatus === "none").slice(0, 4)); })
+      .catch(() => {});
+    apiGetGroups()
+      .then(data => { if (!cancelled) setMyGroups(data.filter(g => g.isMember)); })
+      .catch(() => {});
+    apiGetFriends()
+      .then(data => { if (!cancelled) setFriendsCount(data.length); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isLoggedIn]);
+
+  function ensureAuth() {
+    const token = localStorage.getItem("pflegedb_jwt_token");
+    if (!token) {
+      if (onOpenAuthModal) onOpenAuthModal();
+      else alert("Bitte melde dich an, um diese Funktion zu nutzen.");
+      return false;
+    }
+    return true;
+  }
+
+  // ---- Likes / comments / delete ----
+  const handleLike = async (id) => {
+    if (!ensureAuth()) return;
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, likedByMe: !p.likedByMe, likes: p.likedByMe ? p.likes - 1 : p.likes + 1 } : p));
+    try {
+      const data = await apiToggleLike(id);
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: data.likes, likedByMe: data.likedByMe } : p));
+    } catch (err) {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, likedByMe: !p.likedByMe, likes: p.likedByMe ? p.likes - 1 : p.likes + 1 } : p));
+      alert(err.message);
+    }
   };
 
-  // Connect Toggle
-  const handleConnect = (id) => {
-    setSuggested(prev => prev.map(s => s.id === id ? { ...s, connected: !s.connected } : s));
+  const handleAddComment = async (id, text) => {
+    if (!ensureAuth()) return;
+    const comment = await apiAddComment(id, text);
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, comments: [...p.comments, comment] } : p));
   };
 
-  // Create Post Submit
-  const handleCreatePost = (e) => {
+  const handleDeletePost = async (id) => {
+    if (!window.confirm("Diesen Beitrag wirklich löschen?")) return;
+    try {
+      await apiDeletePost(id);
+      setPosts(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleSendFriendRequest = async (userId) => {
+    if (!ensureAuth()) return;
+    try {
+      await apiSendRequest(userId);
+      setSuggested(prev => prev.filter(s => s.id !== userId));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // ---- Composer ----
+  const openComposer = (mode = "status") => {
+    if (!ensureAuth()) return;
+    setComposerMode(mode);
+    setShowComposer(true);
+  };
+
+  const closeComposer = () => {
+    composerImages.forEach(img => URL.revokeObjectURL(img.url));
+    setComposerImages([]);
+    setComposerDoc(null);
+    setComposerText("");
+    setComposerMode("status");
+    setComposerError("");
+    setShowComposer(false);
+  };
+
+  const handlePickImages = (e) => {
+    const files = Array.from(e.target.files || []);
+    const valid = [];
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) { setComposerError(`${f.name} ist zu groß (max. 8 MB).`); continue; }
+      valid.push(f);
+    }
+    setComposerImages(prev => [...prev, ...valid.map(f => ({ file: f, url: URL.createObjectURL(f) }))].slice(0, 6));
+    e.target.value = "";
+  };
+
+  const removeImage = (idx) => {
+    setComposerImages(prev => {
+      const copy = [...prev];
+      URL.revokeObjectURL(copy[idx].url);
+      copy.splice(idx, 1);
+      return copy;
+    });
+  };
+
+  const handlePickDoc = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const okTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"];
+    if (!okTypes.includes(f.type)) { setComposerError("Nur PDF, DOC, DOCX oder TXT sind erlaubt."); e.target.value = ""; return; }
+    if (f.size > 8 * 1024 * 1024) { setComposerError("Datei ist zu groß (max. 8 MB)."); e.target.value = ""; return; }
+    setComposerDoc({ file: f, name: f.name, size: f.size });
+    e.target.value = "";
+  };
+
+  const handleSubmitPost = async (e) => {
     e.preventDefault();
-    if (!newPostText.trim()) return;
+    if (!ensureAuth()) return;
+    const text = composerText.trim();
+    setComposerError("");
 
-    const newObj = {
-      id: `p-${Date.now()}`,
-      name: "Anna Müller",
-      role: "Nursing Professional",
-      time: "Just now",
-      color: "var(--teal)",
-      initials: "AM",
-      text: newPostText.trim(),
-      likes: 0,
-      comments: 0,
-      liked: false
-    };
+    if (composerMode === "status" && !text) { setComposerError("Bitte gib einen Text ein."); return; }
+    if (composerMode === "photo" && composerImages.length === 0) { setComposerError("Bitte füge mindestens ein Foto hinzu."); return; }
+    if (composerMode === "document" && !composerDoc) { setComposerError("Bitte wähle ein Dokument aus."); return; }
 
-    setPosts(prev => [newObj, ...prev]);
-    setNewPostText("");
-    setShowPostModal(false);
+    setSubmitting(true);
+    try {
+      const payload = { type: composerMode, text, tags: extractHashtags(text) };
+      if (composerMode === "photo") {
+        payload.images = await Promise.all(composerImages.map(img => fileToDataURL(img.file)));
+      }
+      if (composerMode === "document") {
+        payload.document = { name: composerDoc.file.name, dataUrl: await fileToDataURL(composerDoc.file) };
+      }
+      const newPost = await apiCreatePost(payload);
+      setPosts(prev => [newPost, ...prev]);
+      closeComposer();
+    } catch (err) {
+      setComposerError(err.message || "Beitrag konnte nicht erstellt werden.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // ---- Lightbox ----
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setLightbox(null);
+      if (e.key === "ArrowRight") setLightbox(lb => lb ? { ...lb, index: (lb.index + 1) % lb.images.length } : lb);
+      if (e.key === "ArrowLeft") setLightbox(lb => lb ? { ...lb, index: (lb.index - 1 + lb.images.length) % lb.images.length } : lb);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
 
   const navItems = [
     { key: "feed", label: "Feed", icon: "home" },
+    { key: "netzwerk", label: "Netzwerk", icon: "users" },
     { key: "jobs", label: "Jobs", icon: "briefcase" },
     { key: "documents", label: "Documents", icon: "file" },
     { key: "profile", label: "Profile", icon: "user" }
   ];
 
   const visibleDocs = activeDocFilter === "All Files" ? DOCUMENTS : DOCUMENTS.filter(d => d.category === activeDocFilter);
+  const myPosts = posts.filter(p => p.authorId === me.id);
+
+  const postCardProps = {
+    me,
+    onLike: handleLike,
+    onAddComment: handleAddComment,
+    onDelete: handleDeletePost,
+    onOpenLightbox: (images, idx) => setLightbox({ images, index: idx })
+  };
 
   return (
     <div className={`app ${activeNav !== "feed" ? "no-rail" : ""}`}>
-      
+
       {/* ==================== Embedded Component CSS ==================== */}
       <style>{`
         :root {
@@ -427,6 +511,23 @@ export default function PflegeFeed({ onHome }) {
           display: flex;
           flex-direction: column;
           gap: 16px;
+          scroll-behavior: smooth;
+          overscroll-behavior-y: contain;
+          scroll-snap-type: y proximity;
+          overflow-y: auto;
+          max-height: calc(100vh - 180px);
+          padding-right: 6px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+
+        .feed-col::-webkit-scrollbar {
+          display: none;
+        }
+
+        .fp-card {
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
         }
 
         .card {
@@ -438,27 +539,74 @@ export default function PflegeFeed({ onHome }) {
         }
         .card:hover { box-shadow: 0 8px 24px rgba(22,48,92,0.08); transform: translateY(-1px); }
 
-        .post-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .post-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; position: relative; }
         .avatar {
           border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center;
           font-family: 'Sora', sans-serif; font-weight: 700; flex-shrink: 0;
         }
         .post-name { font-weight: 700; font-size: 15px; }
         .post-meta { font-size: 12.5px; color: var(--muted); }
+        .role-badge-inline { display: inline-flex; align-items: center; gap: 3px; background: var(--teal-soft); color: var(--teal-deep); font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+        .group-badge-inline { display: inline-flex; align-items: center; gap: 3px; background: var(--bg); color: var(--navy); font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+
+        .streak-badge { display: inline-flex; align-items: center; gap: 2px; background: #FFF7ED; color: #C2410C; font-size: 11px; font-weight: 800; padding: 2px 7px 2px 5px; border-radius: 999px; vertical-align: middle; }
+        .streak-badge-lg { font-size: 13px; padding: 3px 10px 3px 7px; }
+        .side-profile .name { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+        .profile-name { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        .streak-banner {
+          display: flex; align-items: center; justify-content: space-between; gap: 14px;
+          border-radius: 16px; padding: 14px 18px; margin-bottom: 16px;
+          background: linear-gradient(120deg, var(--navy) 0%, var(--teal-deep) 100%); color: #fff;
+        }
+        .streak-banner-done { background: var(--teal-soft); color: var(--ink); border: 1px solid var(--teal-border); }
+        .streak-banner-left { display: flex; align-items: center; gap: 12px; font-size: 13.5px; line-height: 1.4; }
+        .streak-banner-cta { background: rgba(255,255,255,.18); border: none; color: #fff; font-weight: 700; font-size: 12.5px; padding: 8px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+        .streak-banner-done .streak-banner-cta { background: var(--teal); }
+        .streak-banner-close { background: none; border: none; cursor: pointer; display: flex; padding: 4px; opacity: .8; }
+        .streak-banner-close:hover { opacity: 1; }
+
+        .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 34px 20px; color: var(--muted); }
+        .empty-state-icon { width: 48px; height: 48px; border-radius: 999px; background: var(--teal-soft); display: flex; align-items: center; justify-content: center; }
+        .empty-state-title { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink); }
+        .empty-state-sub { font-size: 12.5px; max-width: 320px; line-height: 1.5; }
 
         .post-text { font-size: 14.5px; line-height: 1.55; margin-bottom: 12px; }
-        .post-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .status-paragraph { font-size: 15px; line-height: 1.68; margin: 0 0 14px; white-space: pre-wrap; }
+        .post-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; margin-top: 12px; }
         .post-tags span { font-size: 12.5px; color: var(--teal); font-weight: 600; }
 
-        .post-illustration {
-          border-radius: 12px; height: 160px; margin-bottom: 16px;
-          background: linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%);
+        .status-card {
+          border-radius: 16px; padding: 40px 24px; margin-bottom: 4px;
+          background: linear-gradient(135deg, var(--navy) 0%, var(--teal-deep) 100%);
+          display: flex; align-items: center; justify-content: center; text-align: center;
+          min-height: 200px; position: relative; overflow: hidden;
+        }
+        .status-card-text { color: #fff; font-family: 'Sora', sans-serif; font-weight: 700; font-size: clamp(18px, 4vw, 26px); line-height: 1.45; position: relative; z-index: 1; }
+        .status-card .pulse-wrap { position: absolute; bottom: 12px; left: 0; right: 0; margin: 0; opacity: .55; display: flex; justify-content: center; }
+
+        .caption-line { font-size: 13.5px; line-height: 1.5; margin: 0 0 10px; }
+        .caption-line b { margin-right: 6px; }
+
+        .ig-media { border-radius: 14px; overflow: hidden; margin-bottom: 4px; background: var(--bg); }
+        .ig-media img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+        .ig-single img { aspect-ratio: 4 / 5; max-height: 520px; }
+        .ig-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+        .ig-grid-2 .ig-tile { aspect-ratio: 1; overflow: hidden; }
+        .ig-grid-3 { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; height: 300px; }
+        .ig-grid-3 .ig-tile { overflow: hidden; }
+        .ig-grid-3 .ig-tile:first-child { grid-row: 1 / 3; }
+        .ig-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+        .ig-grid-4 .ig-tile { aspect-ratio: 1; position: relative; overflow: hidden; }
+        .ig-more-overlay {
+          position: absolute; inset: 0; background: rgba(15,23,42,.55); color: #fff;
           display: flex; align-items: center; justify-content: center;
+          font-family: 'Sora', sans-serif; font-weight: 800; font-size: 22px;
         }
 
         .attachment-row {
           display: flex; align-items: center; justify-content: space-between;
-          background: var(--bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;
+          background: var(--bg); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px;
         }
         .attachment-left { display: flex; align-items: center; gap: 12px; }
         .attachment-icon {
@@ -470,7 +618,7 @@ export default function PflegeFeed({ onHome }) {
 
         .post-actions {
           display: flex; align-items: center; gap: 20px;
-          border-top: 1px solid var(--border); padding-top: 12px;
+          border-top: 1px solid var(--border); padding-top: 12px; margin-top: 14px;
         }
         .action-btn {
           display: flex; align-items: center; gap: 6px; background: none; border: none;
@@ -478,6 +626,87 @@ export default function PflegeFeed({ onHome }) {
         }
         .action-btn.liked { color: var(--like); }
         .action-btn:last-child { margin-left: auto; }
+
+        .fp-menu-btn { margin-left: auto; background: none; border: none; cursor: pointer; color: var(--muted); padding: 6px; flex-shrink: 0; }
+        .fp-menu-dropdown {
+          position: absolute; top: 40px; right: 0; background: #fff; border: 1px solid var(--border);
+          border-radius: 10px; box-shadow: 0 8px 24px rgba(22,48,92,.14); overflow: hidden; z-index: 20; min-width: 180px;
+        }
+        .fp-menu-dropdown button {
+          display: flex; align-items: center; gap: 8px; width: 100%; padding: 11px 14px;
+          background: none; border: none; font-size: 13px; font-weight: 600; color: var(--like); cursor: pointer; text-align: left;
+        }
+        .fp-menu-dropdown button:hover { background: var(--bg); }
+
+        .comments-panel { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+        .comment-row { display: flex; gap: 8px; font-size: 13px; }
+        .comment-text { line-height: 1.4; }
+        .comment-text b { margin-right: 6px; }
+        .comment-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .comment-empty { font-size: 12.5px; color: var(--muted); }
+        .comment-input-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+        .comment-input-row input { flex: 1; border: 1px solid var(--border); border-radius: 999px; padding: 9px 14px; font-size: 13px; font-family: inherit; }
+        .comment-send-btn { width: 32px; height: 32px; border-radius: 999px; border: none; background: var(--teal); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+        .comment-send-btn:disabled { opacity: .4; cursor: default; }
+
+        .stories-row { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 6px; -webkit-overflow-scrolling: touch; align-items: flex-start; }
+        .story-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; width: 64px; cursor: pointer; background: none; border: none; padding: 0; }
+        .story-ring { display: none; }
+        .story-ring-inner { display: none; }
+        .story-name { font-size: 11px; font-weight: 600; text-align: center; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .composer-overlay {
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+          z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;
+        }
+        .composer-modal { background: #fff; border-radius: 18px; width: 100%; max-width: 540px; padding: 26px; max-height: 90vh; overflow-y: auto; }
+        .composer-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .composer-modal-head h3 { margin: 0; font-family: 'Sora', sans-serif; font-size: 18px; }
+        .composer-close-btn { background: var(--bg); border: none; border-radius: 999px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        .composer-mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .composer-mode-tab {
+          flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+          padding: 12px 8px; border-radius: 12px; border: 1.5px solid var(--border); background: #fff;
+          cursor: pointer; font-size: 12px; font-weight: 700; color: var(--muted);
+        }
+        .composer-mode-tab.active { border-color: var(--teal); color: var(--teal-deep); background: var(--teal-soft); }
+
+        .composer-textarea {
+          width: 100%; border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+          font-family: inherit; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box;
+        }
+        .composer-textarea:focus, .comment-input-row input:focus { outline: none; border-color: var(--teal); }
+
+        .composer-upload-block {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 12px;
+        }
+        .composer-filepick-btn {
+          display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1.5px dashed var(--border);
+          border-radius: 12px; padding: 13px 16px; font-size: 13px; font-weight: 700; color: var(--navy);
+          cursor: pointer; width: 100%; justify-content: center; box-sizing: border-box;
+        }
+        .composer-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0; }
+        .composer-thumb { position: relative; width: 76px; height: 76px; border-radius: 10px; overflow: hidden; }
+        .composer-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .composer-thumb button { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 999px; background: rgba(0,0,0,.6); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .composer-doc-preview { display: flex; align-items: center; justify-content: space-between; background: var(--bg); border-radius: 10px; padding: 11px 14px; margin-top: 12px; }
+        .composer-error { color: var(--like); font-size: 12.5px; font-weight: 600; margin-top: 10px; }
+
+        .lightbox-overlay { position: fixed; inset: 0; background: rgba(8,12,24,.92); z-index: 1200; display: flex; align-items: center; justify-content: center; }
+        .lightbox-img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 8px; }
+        .lightbox-close { position: absolute; top: 18px; right: 20px; background: rgba(255,255,255,.15); border: none; width: 38px; height: 38px; border-radius: 999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.15); border: none; width: 44px; height: 44px; border-radius: 999px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .lightbox-nav.prev { left: 16px; }
+        .lightbox-nav.next { right: 16px; }
+
+        .skeleton-card { height: 190px; border-radius: 16px; background: linear-gradient(90deg, #EEF1F8 25%, #E4E8F1 37%, #EEF1F8 63%); background-size: 400% 100%; animation: skeleton 1.4s ease infinite; }
+        @keyframes skeleton { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        .feed-error { background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C; border-radius: 12px; padding: 14px 16px; font-size: 13.5px; }
+        .feed-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 
         .promo-card {
           background: var(--teal-soft);
@@ -667,11 +896,9 @@ export default function PflegeFeed({ onHome }) {
         </div>
 
         <div className="side-profile" onClick={() => setActiveNav("profile")}>
-          <div className="avatar" style={{ width: "56px", height: "56px", fontSize: "20px", background: "var(--teal)" }}>
-            AM
-          </div>
-          <div className="name">Anna Müller</div>
-          <div className="role">Nursing Professional</div>
+          <AvatarCircle name={me.name} size={56} fontSize={20} avatarType={me.avatarType} avatarIcon={me.avatarIcon} avatarUrl={me.avatarUrl} />
+          <div className="name">{me.name} <StreakBadge count={streak?.current} /></div>
+          <div className="role">{me.title || (me.role === "teacher" ? "Lehrer / Administrator" : "Pflegeschüler(in)")}</div>
           <div className="verified-tag">
             <Icon name="badge" size={13} color="var(--verified)" /> Verified Status
           </div>
@@ -691,7 +918,7 @@ export default function PflegeFeed({ onHome }) {
         </nav>
 
         <div className="sidebar-spacer" />
-        <button className="post-btn" onClick={() => setShowPostModal(true)}>
+        <button className="post-btn" onClick={() => openComposer("status")}>
           <Icon name="plus" size={17} color="#fff" />
           <span>Post Update</span>
         </button>
@@ -713,8 +940,8 @@ export default function PflegeFeed({ onHome }) {
             <Icon name="bell" size={19} color="var(--navy)" />
             <span className="dot-badge" />
           </span>
-          <div className="avatar" onClick={() => setActiveNav("profile")} style={{ width: "26px", height: "26px", fontSize: "10px", background: "var(--teal)", cursor: "pointer" }}>
-            AM
+          <div onClick={() => setActiveNav("profile")} style={{ cursor: "pointer" }}>
+            <AvatarCircle name={me.name} size={26} fontSize={10} avatarType={me.avatarType} avatarIcon={me.avatarIcon} avatarUrl={me.avatarUrl} />
           </div>
         </div>
       </header>
@@ -734,107 +961,86 @@ export default function PflegeFeed({ onHome }) {
 
         {/* FEED PAGE */}
         {activeNav === "feed" && (
-          <div className="feed-col">
-            {posts.map(post => (
-              <article className="card" key={post.id}>
-                <div className="post-head">
-                  <div className="avatar" style={{ width: "44px", height: "44px", fontSize: "16px", background: post.color }}>
-                    {post.initials}
-                  </div>
+          <>
+            {isLoggedIn && streak && !streakBannerDismissed && (streak.current > 0 || !streak.postedToday) && (
+              <div className={`streak-banner ${streak.postedToday ? "streak-banner-done" : ""}`}>
+                <div className="streak-banner-left">
+                  <Icon name="flame" size={20} color={streak.postedToday ? "#EA580C" : "#fff"} strokeWidth={2.2} />
                   <div>
-                    <div className="post-name">{post.name}</div>
-                    <div className="post-meta">{post.role} · {post.time}</div>
+                    {streak.current > 0 ? (
+                      <>
+                        <b>{streak.current}-Tage-Streak!</b>{" "}
+                        {streak.postedToday ? "Heute schon gepostet — stark." : "Poste heute etwas, um ihn zu halten."}
+                      </>
+                    ) : (
+                      <><b>Starte deinen Streak!</b> Teile heute ein Update aus deinem Praktikum.</>
+                    )}
                   </div>
                 </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {!streak.postedToday && (
+                    <button className="streak-banner-cta" onClick={() => openComposer("status")}>Jetzt posten</button>
+                  )}
+                  <button className="streak-banner-close" onClick={() => setStreakBannerDismissed(true)}>
+                    <Icon name="x" size={14} color={streak.postedToday ? "var(--muted)" : "#fff"} />
+                  </button>
+                </div>
+              </div>
+            )}
 
-                <p className="post-text">{post.text}</p>
+            <div ref={feedScrollRef} className="feed-col">
 
-                {post.tags && (
-                  <div className="post-tags">
-                    {post.tags.map((t, idx) => (
-                      <span key={idx}>{t}</span>
-                    ))}
-                  </div>
-                )}
+              {feedError && <div className="feed-error">{feedError}</div>}
 
-                {post.illustration && (
-                  <div className="post-illustration">
-                    <svg width="72%" height="60%" viewBox="0 0 200 90" fill="none">
-                      <rect x="4" y="10" width="46" height="34" rx="4" stroke="var(--teal)" strokeWidth="1.6" opacity="0.9" />
-                      <path d="M8 32 L16 32 L20 20 L26 40 L31 26 L36 32 L46 32" stroke="#34D399" strokeWidth="1.6" fill="none" />
-                      <rect x="58" y="4" width="46" height="34" rx="4" stroke="var(--teal)" strokeWidth="1.6" opacity="0.7" />
-                      <path d="M62 22 L70 22 L74 12 L80 30 L85 18 L90 22 L100 22" stroke="#60A5FA" strokeWidth="1.6" fill="none" />
-                      <rect x="112" y="14" width="82" height="60" rx="6" stroke="#fff" strokeWidth="1.6" opacity="0.85" />
-                      <circle cx="153" cy="44" r="16" stroke="var(--teal)" strokeWidth="1.4" opacity="0.6" />
-                      <path d="M118 74 Q153 88 188 74" stroke="#fff" strokeWidth="1.4" opacity="0.4" fill="none" />
-                    </svg>
-                  </div>
-                )}
+              {feedLoading && (
+                <>
+                  <div className="skeleton-card" />
+                  <div className="skeleton-card" />
+                </>
+              )}
 
-                {post.attachment && (
-                  <div className="attachment-row">
-                    <div className="attachment-left">
-                      <div className="attachment-icon">
-                        <Icon name="file" size={18} color="#DC2626" />
+              {!feedLoading && posts.length === 0 && !feedError && (
+                <EmptyState icon="edit" title="Noch keine Beiträge" sub="Sei der/die Erste und teile ein Update!" />
+              )}
+
+              {!feedLoading && posts.map(post => <PostCard key={post.id} post={post} {...postCardProps} />)}
+
+              {/* Promoted Job Card */}
+              {!feedLoading && (
+                <article className="card promo-card" style={{ marginTop: 0 }}>
+                  <div className="promo-head">
+                    <div className="promo-left">
+                      <div className="promo-logo">
+                        <Icon name="plus" size={18} color="var(--teal)" />
                       </div>
                       <div>
-                        <div className="attachment-name">{post.attachment.name}</div>
-                        <div className="attachment-meta">{post.attachment.meta}</div>
+                        <div className="promo-company">Klinikum am Park</div>
+                        <div className="promo-sub">Promoted Job</div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => alert(`Downloading ${post.attachment.name}...`)}
-                      style={{ background: "none", border: "none", cursor: "pointer" }}
-                    >
-                      <Icon name="download" size={17} color="var(--navy)" />
-                    </button>
+                    <span className="hiring-badge">HIRING</span>
                   </div>
-                )}
+                  <h3 className="promo-title">Pflegefachkraft (m/w/d) – Minijob</h3>
+                  <p className="promo-desc">
+                    Wir suchen Unterstützung für unser Pflegeteam an Wochenenden. Flexible Arbeitszeiten, attraktive Vergütung und ein tolles Team warten auf dich!
+                  </p>
+                  <div className="promo-tags">
+                    <span>
+                      <Icon name="clock" size={13} color="var(--ink)" /> Minijob / 538€
+                    </span>
+                    <span>
+                      <Icon name="mappin" size={13} color="var(--ink)" /> Berlin-Mitte
+                    </span>
+                  </div>
+                </article>
+              )}
+            </div>
+          </>
+        )}
 
-                <div className="post-actions">
-                  <button className={`action-btn ${post.liked ? "liked" : ""}`} onClick={() => handleLike(post.id)}>
-                    <Icon name="heart" size={17} color={post.liked ? "var(--like)" : "var(--muted)"} />
-                    <span>{post.likes}</span>
-                  </button>
-                  <button className="action-btn">
-                    <Icon name="message" size={17} color="var(--muted)" />
-                    <span>{post.comments}</span>
-                  </button>
-                  <button className="action-btn">
-                    <Icon name="share" size={16} color="var(--muted)" />
-                  </button>
-                </div>
-              </article>
-            ))}
-
-            {/* Promoted Job Card */}
-            <article className="card promo-card" style={{ marginTop: 0 }}>
-              <div className="promo-head">
-                <div className="promo-left">
-                  <div className="promo-logo">
-                    <Icon name="plus" size={18} color="var(--teal)" />
-                  </div>
-                  <div>
-                    <div className="promo-company">Klinikum am Park</div>
-                    <div className="promo-sub">Promoted Job</div>
-                  </div>
-                </div>
-                <span className="hiring-badge">HIRING</span>
-              </div>
-              <h3 className="promo-title">Pflegefachkraft (m/w/d) – Minijob</h3>
-              <p className="promo-desc">
-                Wir suchen Unterstützung für unser Pflegeteam an Wochenenden. Flexible Arbeitszeiten, attraktive Vergütung und ein tolles Team warten auf dich!
-              </p>
-              <div className="promo-tags">
-                <span>
-                  <Icon name="clock" size={13} color="var(--ink)" /> Minijob / 538€
-                </span>
-                <span>
-                  <Icon name="mappin" size={13} color="var(--ink)" /> Berlin-Mitte
-                </span>
-              </div>
-            </article>
-          </div>
+        {/* NETZWERK PAGE */}
+        {activeNav === "netzwerk" && (
+          <FeedNetzwerk me={me} onOpenAuthModal={onOpenAuthModal} />
         )}
 
         {/* JOBS PAGE */}
@@ -999,7 +1205,7 @@ export default function PflegeFeed({ onHome }) {
                 </div>
               ))}
 
-              <div className="upload-tile" onClick={() => alert("Upload dialog opened")}>
+              <div className="upload-tile" onClick={() => openComposer("document")}>
                 <div className="upload-circle">
                   <Icon name="upload" size={20} color="#fff" />
                 </div>
@@ -1021,18 +1227,16 @@ export default function PflegeFeed({ onHome }) {
               </div>
 
               <div className="profile-body">
-                <div className="avatar profile-avatar-lg" style={{ background: "var(--teal)" }}>
-                  AM
-                </div>
+                <AvatarCircle name={me.name} size={88} fontSize={30} avatarType={me.avatarType} avatarIcon={me.avatarIcon} avatarUrl={me.avatarUrl} style={{ borderRadius: "999px", border: "4px solid #fff", marginTop: "-44px" }} />
 
                 <div className="profile-name-row">
                   <div>
-                    <h2 className="profile-name">Anna Müller</h2>
+                    <h2 className="profile-name">{me.name} <StreakBadge count={streak?.current} size="lg" /></h2>
                     <div className="profile-role">
-                      <Icon name="book" size={15} color="var(--muted)" /> Pflegeschülerin
+                      <Icon name="book" size={15} color="var(--muted)" /> {me.title || (me.role === "teacher" ? "Lehrer / Administrator" : "Pflegeschülerin")}
                     </div>
                     <p className="profile-bio">
-                      Passionate about patient care and learning new techniques. Currently completing practical rotations at St. Marien Hospital.
+                      Teil der PflegeFeed Community. Teile Fotos, Status-Updates und hilfreiche Dokumente mit deinen Kommiliton:innen.
                     </p>
                   </div>
 
@@ -1048,16 +1252,20 @@ export default function PflegeFeed({ onHome }) {
 
                 <div className="profile-stats">
                   <div>
-                    <div className="stat-num">42</div>
+                    <div className="stat-num">{myPosts.length}</div>
                     <div className="stat-label">Posts</div>
                   </div>
                   <div>
-                    <div className="stat-num">12</div>
+                    <div className="stat-num">{myPosts.filter(p => p.type === "document").length}</div>
                     <div className="stat-label">Documents</div>
                   </div>
                   <div>
-                    <div className="stat-num">128</div>
-                    <div className="stat-label">Contacts</div>
+                    <div className="stat-num">{friendsCount ?? "–"}</div>
+                    <div className="stat-label">Freunde</div>
+                  </div>
+                  <div>
+                    <div className="stat-num">{streak?.current ?? 0}</div>
+                    <div className="stat-label">Tage-Streak</div>
                   </div>
                 </div>
               </div>
@@ -1081,47 +1289,30 @@ export default function PflegeFeed({ onHome }) {
 
             <div className="profile-content">
               {activeProfileTab === "posts" && (
-                <div className="card">
-                  <div className="post-head">
-                    <div className="avatar" style={{ width: "40px", height: "40px", fontSize: "14px", background: "var(--teal)" }}>
-                      AM
-                    </div>
-                    <div>
-                      <div className="post-name">Anna Müller</div>
-                      <div className="post-meta">2 hours ago</div>
-                    </div>
-                  </div>
-                  <p className="post-text" style={{ marginBottom: "14px" }}>
-                    Just finished a really interesting shift in the ER. The pace is incredible, but you learn so much about rapid assessment. Huge thanks to my mentor today!
-                  </p>
-                  <div className="post-actions" style={{ borderTop: "1px solid var(--border)" }}>
-                    <span className="action-btn">
-                      <Icon name="heart" size={16} color="var(--muted)" />
-                      <span>12</span>
-                    </span>
-                    <span className="action-btn">
-                      <Icon name="message" size={16} color="var(--muted)" />
-                      <span>3</span>
-                    </span>
-                  </div>
-                </div>
+                myPosts.length === 0
+                  ? <EmptyState icon="edit" title="Noch keine Beiträge" sub="Du hast noch keine Beiträge geteilt." />
+                  : myPosts.map(post => <PostCard key={post.id} post={post} {...postCardProps} />)
               )}
 
               {activeProfileTab === "docs" && (
-                <div className="card attachment-row" style={{ marginBottom: 0 }}>
-                  <div className="attachment-left">
-                    <div className="attachment-icon" style={{ background: "#DCEAFE" }}>
-                      <Icon name="file" size={18} color="#2563EB" />
+                myPosts.filter(p => p.type === "document").length === 0
+                  ? <div className="feed-empty">Noch keine Dokumente geteilt.</div>
+                  : myPosts.filter(p => p.type === "document").map(post => (
+                    <div className="card attachment-row" style={{ marginBottom: 0 }} key={post.id}>
+                      <div className="attachment-left">
+                        <div className="attachment-icon" style={{ background: "#DCEAFE" }}>
+                          <Icon name="file" size={18} color="#2563EB" />
+                        </div>
+                        <div>
+                          <div className="attachment-name">{post.document.name}</div>
+                          <div className="attachment-meta">Geteilt {timeAgo(post.createdAt)} · {formatFileSize(post.document.size)}</div>
+                        </div>
+                      </div>
+                      <a href={post.document.url} download={post.document.name} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                        <Icon name="download" size={17} color="var(--navy)" />
+                      </a>
                     </div>
-                    <div>
-                      <div className="attachment-name">Hygiene Protocols Summary 2024.pdf</div>
-                      <div className="attachment-meta">Shared 2 days ago · 1.2 MB</div>
-                    </div>
-                  </div>
-                  <button onClick={() => alert("Downloading...")} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                    <Icon name="download" size={17} color="var(--navy)" />
-                  </button>
-                </div>
+                  ))
               )}
 
               {activeProfileTab === "jobs" && (
@@ -1153,31 +1344,48 @@ export default function PflegeFeed({ onHome }) {
             ))}
           </div>
 
-          <div className="rail-card">
-            <div className="rail-head">
-              <Icon name="userplus" size={17} color="var(--navy)" />
-              <span className="rail-title">Vorgeschlagen</span>
-            </div>
-            {suggested.map(p => (
-              <div className="suggest-item" key={p.id}>
-                <div className="suggest-left">
-                  <div className="avatar" style={{ width: "36px", height: "36px", fontSize: "13px", background: p.color }}>
-                    {p.initials}
+          {isLoggedIn && suggested.length > 0 && (
+            <div className="rail-card">
+              <div className="rail-head">
+                <Icon name="userplus" size={17} color="var(--navy)" />
+                <span className="rail-title">Vorgeschlagen</span>
+              </div>
+              {suggested.map(p => (
+                <div className="suggest-item" key={p.id}>
+                  <div className="suggest-left">
+                    <AvatarCircle name={p.name} size={36} fontSize={13} avatarType={p.avatarType} avatarIcon={p.avatarIcon} avatarUrl={p.avatarUrl} />
+                    <div>
+                      <div className="suggest-name">{p.name}</div>
+                      <div className="suggest-role">{p.title}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="suggest-name">{p.name}</div>
-                    <div className="suggest-role">{p.role}</div>
+                  <button className="connect-btn" onClick={() => handleSendFriendRequest(p.id)} title="Freundschaftsanfrage senden">
+                    <Icon name="plus" size={15} color="var(--navy)" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isLoggedIn && myGroups.length > 0 && (
+            <div className="rail-card">
+              <div className="rail-head">
+                <Icon name="activity" size={17} color="var(--teal)" />
+                <span className="rail-title">Meine Gruppen</span>
+              </div>
+              {myGroups.slice(0, 5).map(g => (
+                <div className="suggest-item" key={g.id} style={{ cursor: "pointer" }} onClick={() => setActiveNav("netzwerk")}>
+                  <div className="suggest-left">
+                    <AvatarCircle name={g.name} size={36} fontSize={13} />
+                    <div>
+                      <div className="suggest-name">{g.name}</div>
+                      <div className="suggest-role">{g.memberCount} Mitglied{g.memberCount === 1 ? "" : "er"}</div>
+                    </div>
                   </div>
                 </div>
-                <button
-                  className={`connect-btn ${p.connected ? "connected" : ""}`}
-                  onClick={() => handleConnect(p.id)}
-                >
-                  <Icon name={p.connected ? "check" : "plus"} size={15} color={p.connected ? "#fff" : "var(--navy)"} />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </aside>
       )}
 
@@ -1195,37 +1403,149 @@ export default function PflegeFeed({ onHome }) {
         ))}
       </nav>
 
-      {/* ============ Post Update Modal ============ */}
-      {showPostModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-          <div style={{ background: "#ffffff", borderRadius: "16px", width: "100%", maxWidth: "520px", padding: "28px" }}>
-            <h3 style={{ margin: "0 0 16px 0", fontFamily: "Sora, sans-serif" }}>Post Update</h3>
-            <form onSubmit={handleCreatePost} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      {/* ============ Composer Modal ============ */}
+      {showComposer && (
+        <div className="composer-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeComposer(); }}>
+          <div className="composer-modal">
+            <div className="composer-modal-head">
+              <h3>Neuer Beitrag</h3>
+              <button className="composer-close-btn" onClick={closeComposer}>
+                <Icon name="x" size={16} color="var(--ink)" />
+              </button>
+            </div>
+
+            <div className="composer-mode-tabs">
+              {COMPOSER_MODES.map(m => (
+                <button
+                  key={m.key}
+                  type="button"
+                  className={`composer-mode-tab ${composerMode === m.key ? "active" : ""}`}
+                  onClick={() => { setComposerMode(m.key); setComposerError(""); }}
+                >
+                  <Icon name={m.icon} size={18} color={composerMode === m.key ? "var(--teal-deep)" : "var(--muted)"} />
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmitPost}>
               <textarea
-                rows="4"
-                placeholder="Share your thoughts or clinical update..."
-                value={newPostText}
-                onChange={e => setNewPostText(e.target.value)}
-                required
-                style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid var(--border)", fontFamily: "inherit" }}
+                className="composer-textarea"
+                placeholder={
+                  composerMode === "status" ? "Wie war deine Schicht heute? Teile ein Update... (#hashtags werden erkannt)" :
+                    composerMode === "photo" ? "Schreibe eine Bildunterschrift..." :
+                      "Beschreibe kurz, worum es in dem Dokument geht..."
+                }
+                value={composerText}
+                onChange={e => setComposerText(e.target.value)}
               />
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+
+              {composerMode === "photo" && (
+                <div className="composer-upload-block">
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={handlePickImages}
+                  />
+                  <button type="button" className="composer-filepick-btn" onClick={() => imageInputRef.current?.click()}>
+                    <Icon name="image" size={17} color="var(--navy)" /> Fotos hinzufügen ({composerImages.length}/6)
+                  </button>
+                  {composerImages.length > 0 && (
+                    <div className="composer-thumbs">
+                      {composerImages.map((img, idx) => (
+                        <div className="composer-thumb" key={idx}>
+                          <img src={img.url} alt="" />
+                          <button type="button" onClick={() => removeImage(idx)}>
+                            <Icon name="x" size={11} color="#fff" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {composerMode === "document" && (
+                <div className="composer-upload-block">
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    style={{ display: "none" }}
+                    onChange={handlePickDoc}
+                  />
+                  {!composerDoc ? (
+                    <button type="button" className="composer-filepick-btn" onClick={() => docInputRef.current?.click()}>
+                      <Icon name="upload" size={17} color="var(--navy)" /> Dokument auswählen (PDF, DOC, DOCX, TXT)
+                    </button>
+                  ) : (
+                    <div className="composer-doc-preview">
+                      <div className="attachment-left">
+                        <div className="attachment-icon">
+                          <Icon name="file" size={18} color="#DC2626" />
+                        </div>
+                        <div>
+                          <div className="attachment-name">{composerDoc.name}</div>
+                          <div className="attachment-meta">{formatFileSize(composerDoc.size)}</div>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => setComposerDoc(null)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex" }}>
+                        <Icon name="x" size={16} color="var(--muted)" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {composerError && <div className="composer-error">{composerError}</div>}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "18px" }}>
                 <button
                   type="button"
-                  onClick={() => setShowPostModal(false)}
+                  onClick={closeComposer}
                   style={{ padding: "10px 16px", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "8px", fontWeight: 600, cursor: "pointer" }}
                 >
-                  Cancel
+                  Abbrechen
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: "10px 20px", background: "var(--teal)", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: 700, cursor: "pointer" }}
+                  disabled={submitting}
+                  style={{ padding: "10px 20px", background: "var(--teal)", color: "#ffffff", border: "none", borderRadius: "8px", fontWeight: 700, cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1 }}
                 >
-                  Post Update
+                  {submitting ? "Wird gepostet..." : "Posten"}
                 </button>
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* ============ Lightbox ============ */}
+      {lightbox && (
+        <div className="lightbox-overlay" onClick={(e) => { if (e.target === e.currentTarget) setLightbox(null); }}>
+          <button className="lightbox-close" onClick={() => setLightbox(null)}>
+            <Icon name="x" size={18} color="#fff" />
+          </button>
+          {lightbox.images.length > 1 && (
+            <button
+              className="lightbox-nav prev"
+              onClick={() => setLightbox(lb => ({ ...lb, index: (lb.index - 1 + lb.images.length) % lb.images.length }))}
+            >
+              <Icon name="chevronleft" size={20} color="#fff" />
+            </button>
+          )}
+          <img className="lightbox-img" src={lightbox.images[lightbox.index]} alt="" />
+          {lightbox.images.length > 1 && (
+            <button
+              className="lightbox-nav next"
+              onClick={() => setLightbox(lb => ({ ...lb, index: (lb.index + 1) % lb.images.length }))}
+            >
+              <Icon name="chevronright" size={20} color="#fff" />
+            </button>
+          )}
         </div>
       )}
 

@@ -20,6 +20,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { UserProfileMenu } from './feedShared';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
@@ -222,7 +223,7 @@ const QUIZ_QUESTIONS = [
   }
 ];
 
-export default function KoerperView({ onHome }) {
+export default function KoerperView({ onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   const [activeTopTab, setActiveTopTab] = useState('3d'); // '3d' | 'quiz' | 'library'
   const [selectedOrganId, setSelectedOrganId] = useState('heart');
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
@@ -597,10 +598,13 @@ export default function KoerperView({ onHome }) {
           <button style={{ background: "none", border: "none", fontSize: "1.2rem", color: "#64748b", cursor: "pointer" }} title="Settings">⚙️</button>
           <button style={{ background: "none", border: "none", fontSize: "1.2rem", color: "#64748b", cursor: "pointer" }} title="Help">❓</button>
 
-          <img
-            src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=100&auto=format&fit=crop&q=80"
-            alt="User avatar"
-            style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", cursor: "pointer" }}
+          <UserProfileMenu
+            variant="light"
+            userRole={userRole}
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            onOpenAuthModal={onOpenAuthModal}
+            onOpenAvatarPicker={onOpenAvatarPicker}
           />
 
         </div>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import './Pflegeplanung.css';
 import { getInitialPatients } from './patientData';
+import { UserProfileMenu } from './feedShared';
+import { LogoPlanning } from './icons';
 
-export default function Pflegeplanung({ onHome, userRole, setUserRole, onLaunchApp }) {
+export default function Pflegeplanung({ onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker, onLaunchApp }) {
   // Database state
   const [patients, setPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
@@ -360,13 +362,14 @@ export default function Pflegeplanung({ onHome, userRole, setUserRole, onLaunchA
         {/* App Control Bar */}
         <div className="pp-control-bar">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div 
-              className="pp-breadcrumb" 
-              onClick={onHome} 
+            <div
+              className="pp-breadcrumb"
+              onClick={onHome}
               style={{ cursor: onHome ? 'pointer' : 'default' }}
               title={onHome ? "Zurück zur Startseite" : ""}
             >
-              Pflegeplanung / {currentPatient ? currentPatient.name : 'Kein Patient ausgewählt'}
+              <span className="pp-breadcrumb-icon"><LogoPlanning /></span>
+              <span>Pflegeplanung</span>
             </div>
           </div>
           
@@ -412,9 +415,6 @@ export default function Pflegeplanung({ onHome, userRole, setUserRole, onLaunchA
           </div>
 
           <div className="pp-actions">
-            <button className="pp-btn" onClick={onHome}>
-              <span>🏠</span> Startseite
-            </button>
             {currentPatient && mode === 'view' && selectedPlanIndex !== null && (
               <button className="pp-btn pp-btn-outline" onClick={handlePrint}>
                 <span>🖨️</span> Plan drucken
@@ -425,6 +425,14 @@ export default function Pflegeplanung({ onHome, userRole, setUserRole, onLaunchA
                 <span>❌</span> Abbrechen
               </button>
             )}
+            <UserProfileMenu
+              variant="light"
+              userRole={userRole}
+              currentUser={currentUser}
+              setCurrentUser={setCurrentUser}
+              onOpenAuthModal={onOpenAuthModal}
+              onOpenAvatarPicker={onOpenAvatarPicker}
+            />
           </div>
         </div>
 

@@ -3,8 +3,7 @@ import './App.css';
 import { generateDummyData } from './data';
 import PflegeHeute from './PflegeHeute';
 import Medikamente from './Medikamente';
-import AdminPanel from './AdminPanel';
-import Anatomie from './Anatomie';
+import AccountAdminPanel from './AccountAdminPanel';
 import Pflegeplanung from './Pflegeplanung';
 import AudibleDoku from './AudibleDoku';
 import PflegeDikatView from './PflegeDikatView';
@@ -12,6 +11,12 @@ import ClassroomView from './ClassroomView';
 import ELearningCertificates from './ELearningCertificates';
 import DeutschFeed from './DeutschFeed';
 import PflegeFeed from './PflegeFeed';
+import LetsMeetView from './LetsMeetView';
+import DocreateView from './DocreateView';
+import LetsZeichnenView from './LetsZeichnenView';
+import DeviceTrainingView from './DeviceTrainingView';
+import AvatarPicker from './AvatarPicker';
+import { AvatarCircle, Icon, UserProfileMenu } from './feedShared';
 import KoerperView from './KoerperView';
 import TamSurveyView from './TamSurveyView';
 import TodoView from './TodoView';
@@ -21,20 +26,10 @@ import CalendarView from './CalendarView';
 import {
   LogoDiscuss, LogoCalendar, LogoAppointments, LogoTodo, LogoKnowledge,
   LogoContacts, LogoCRM, LogoSales, LogoDashboards, LogoRentals,
-  LogoPOS, LogoInvoicing, LogoProject, LogoPlanning, LogoMedikamente,
+  LogoPOS, LogoInvoicing, LogoKlassenzimmer, LogoPlanning, LogoMedikamente,
   LogoELearning,  LogoEvents, LogoSurveys, LogoSign, LogoEmployees,
-  LogoApps, LogoSettings, LogoPflegeheute, LogoPflegeDiktat, LogoAudibleDoku
+  LogoApps, LogoSettings, LogoPflegeheute, LogoPflegeDiktat, LogoAudibleDoku, LogoLetsMeet, LogoDocreate, LogoLetsZeichnen, LogoDeviceTraining
 } from './icons';
-
-const LogoAnatomie = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full" style={{ padding: '2px' }}>
-    <circle cx="12" cy="5" r="2.5" />
-    <path d="M12 7.5v8.5" />
-    <path d="M7 10h10" />
-    <path d="M9 16h6" />
-    <path d="M10 16v6h4v-6" />
-  </svg>
-);
 
 const LogoKoerper = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full" style={{ padding: '2px' }}>
@@ -55,108 +50,244 @@ const ALL_APPS = [
   { id: 'audible_doku', label: 'PflegeDiktat', Logo: LogoPflegeDiktat, active: true },
   { id: 'calendar', label: 'Kalender', Logo: LogoCalendar, active: true },
   { id: 'appointments', label: 'Termine', Logo: LogoAppointments, active: true },
-  { id: 'todo', label: 'To-do & Aufgaben', Logo: LogoTodo, active: true },
+  { id: 'todo', label: 'ToDo', Logo: LogoTodo, active: true },
   { id: 'knowledge', label: 'PflegeFeed', Logo: LogoKnowledge, active: true },
-  { id: 'admin_panel', label: 'Admin-Zentrale', Logo: LogoSettings, active: true },
+  { id: 'letsmeet', label: 'LetsMeet', Logo: LogoLetsMeet, active: true },
+  { id: 'docreate', label: 'Docreate', Logo: LogoDocreate, active: true },
+  { id: 'letszeichnen', label: 'LetsZeichnen', Logo: LogoLetsZeichnen, active: true },
+  { id: 'devicetraining', label: 'Gerätetraining', Logo: LogoDeviceTraining, active: true },
+  { id: 'account_admin', label: 'Kontenverwaltung', Logo: LogoSettings, active: true, adminOnly: true },
   { id: 'pflegeheute', label: 'Pflegeheute', Logo: LogoPflegeheute, active: true },
   { id: 'sales', label: 'TAM Survey', Logo: LogoSales, active: true },
-  { id: 'project', label: 'Klassenzimmer', Logo: LogoProject, active: true },
+  { id: 'project', label: 'Klassenzimmer', Logo: LogoKlassenzimmer, active: true },
   { id: 'planning', label: 'Pflegeplanung', Logo: LogoPlanning, active: true },
   { id: 'medikamente', label: 'Medikamente', Logo: LogoMedikamente, active: true },
-  { id: 'elearning', label: 'E-Learning Zertifikate', Logo: LogoELearning, active: true },
+  { id: 'elearning', label: 'E Learning', Logo: LogoELearning, active: true },
   { id: 'surveys', label: 'Umfragen', Logo: LogoSurveys, active: true },
   { id: 'students', label: 'Mitarbeiter', Logo: LogoEmployees, active: true },
-  { id: 'anatomie', label: 'Anatomie', Logo: LogoAnatomie, active: true },
   { id: 'koerper', label: 'Körper', Logo: LogoKoerper, active: true }
+];
+
+// One-click demo logins on the login screen — each still performs a real /api/auth/login
+// against one of the seeded accounts (real password, real JWT, real session), so this is a
+// convenience shortcut rather than a fake/bypassed auth path.
+const DEMO_ACCOUNTS = [
+  { role: 'student', label: 'Schüler(in)', icon: '🎓', email: 'schueler@pflege.de', password: 'student123' },
+  { role: 'teacher', label: 'Lehrkraft', icon: '👨‍🏫', email: 'lehrer@pflege.de', password: 'teacher123' },
+  { role: 'praxisanleiter', label: 'Praxisanleiter(in)', icon: '🩺', email: 'praxisanleiter@pflege.de', password: 'praxis123' },
+  { role: 'admin', label: 'Administrator(in)', icon: '⚙️', email: 'admin@pflege.de', password: 'admin123' }
 ];
 
 // ==========================================
 // 2. SECURE ACCESS AUTH MODAL (LOGIN & REGISTER)
 // ==========================================
+const REGISTER_ROLE_OPTIONS = [
+  { r: 'student', label: 'Schüler', icon: 'graduation-cap', desc: 'Kurse & Fortschritt', activeColor: '#0284c7', activeBg: '#f0f9ff' },
+  { r: 'teacher', label: 'Lehrkraft', icon: 'book', desc: 'Klassen & Kurse', activeColor: '#d97706', activeBg: '#fffbeb' },
+  { r: 'praxisanleiter', label: 'Praxisanleiter', icon: 'stethoscope', desc: 'Praxisphasen', activeColor: '#0d9488', activeBg: '#f0fdfa' }
+];
+
+const AUTH_MODAL_CSS = `
+.pf-auth-shell { display: flex; width: min(920px, 100%); max-height: 92vh; border-radius: 26px; overflow: hidden; box-shadow: 0 30px 60px -15px rgba(2,6,23,0.45); background: #ffffff; }
+.pf-auth-brand { flex: 0 0 38%; background: linear-gradient(160deg, #0284c7 0%, #0369a1 55%, #0c4a6e 100%); color: #fff; padding: 40px 32px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.pf-auth-brand::before { content: ''; position: absolute; width: 260px; height: 260px; border-radius: 50%; background: rgba(255,255,255,0.08); top: -90px; right: -80px; }
+.pf-auth-brand::after { content: ''; position: absolute; width: 190px; height: 190px; border-radius: 50%; background: rgba(255,255,255,0.06); bottom: -70px; left: -50px; }
+.pf-auth-brand-top, .pf-auth-brand-bottom { position: relative; z-index: 1; }
+.pf-auth-badge { width: 52px; height: 52px; border-radius: 16px; background: rgba(255,255,255,0.16); display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+.pf-auth-feature { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600; margin-bottom: 13px; color: rgba(255,255,255,0.92); }
+.pf-auth-feature-icon { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pf-auth-panel { flex: 1 1 auto; padding: 40px 38px 26px; overflow-y: auto; position: relative; text-align: left; }
+.pf-auth-close { position: absolute; top: 18px; right: 18px; background: #f1f5f9; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.2rem; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pf-auth-tabs { display: flex; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+.pf-auth-tab { flex: 1; padding: 8px 16px; border-radius: 9px; border: none; font-weight: 700; font-size: 0.88rem; cursor: pointer; transition: all 0.15s ease; }
+.pf-auth-step-track { display: flex; gap: 6px; margin-bottom: 18px; }
+.pf-auth-step-track > div { flex: 1; height: 4px; border-radius: 2px; background: #e2e8f0; transition: background 0.2s ease; }
+.pf-auth-role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pf-auth-role-card { border-radius: 14px; border: 1.5px solid #e2e8f0; background: #fff; padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: all 0.15s ease; text-align: center; }
+.pf-auth-role-card:hover { border-color: #94a3b8; transform: translateY(-1px); }
+.pf-auth-role-icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+@media (max-width: 760px) {
+  .pf-auth-brand { display: none; }
+  .pf-auth-shell { border-radius: 20px; }
+}
+@media (max-width: 460px) {
+  .pf-auth-role-grid { grid-template-columns: 1fr; }
+  .pf-auth-role-card { flex-direction: row; justify-content: flex-start; text-align: left; padding: 10px 12px; }
+}
+`;
+
 function SecureAuthModal({ isOpen, onClose, onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
+  const [registerStep, setRegisterStep] = useState(1); // 1 = who are you, 2 = credentials
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('student');
+  const [specialty, setSpecialty] = useState('');
+  const [cohortYear, setCohortYear] = useState('');
+  const [institution, setInstitution] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resendState, setResendState] = useState(''); // '' | 'sending' | 'sent'
+  const [pendingMessage, setPendingMessage] = useState('');
 
   if (!isOpen) return null;
 
-  const handleFillPreset = (presetRole) => {
+  const resetTransient = () => {
     setError('');
-    if (presetRole === 'teacher') {
-      setEmail('lehrer@pflege.de');
-      setPassword('teacher123');
-      setRole('teacher');
-    } else {
-      setEmail('schueler@pflege.de');
-      setPassword('student123');
-      setRole('student');
-    }
+    setPendingMessage('');
+    setShowResend(false);
+    setResendState('');
+    setRegisterStep(1);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleClose = () => {
+    resetTransient();
+    setActiveTab('login');
+    onClose();
+  };
+
+  const switchTab = (tab) => {
+    setActiveTab(tab);
+    resetTransient();
+  };
+
+  const handleNextStep = () => {
     setError('');
+    if (!fullName.trim() || !email.trim()) {
+      setError('Bitte Name und E-Mail-Adresse ausfüllen.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Bitte eine gültige E-Mail-Adresse eingeben.');
+      return;
+    }
+    setRegisterStep(2);
+  };
+
+  const handleBackStep = () => {
+    setError('');
+    setRegisterStep(1);
+  };
+
+  // Shared by the normal login form and the one-click demo-account buttons — both go through
+  // this same real /api/auth/login call, so a demo login is a real session, not a bypass.
+  const submitLogin = async (loginEmail, loginPassword) => {
+    setError('');
+    setShowResend(false);
     setLoading(true);
-
-    const endpoint = activeTab === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const payload = activeTab === 'login' 
-      ? { email: email.trim(), password: password.trim(), role }
-      : { name: fullName.trim(), email: email.trim(), password: password.trim(), role };
-
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword.trim() })
       });
       const data = await res.json();
       setLoading(false);
 
       if (!res.ok || data.error) {
         setError(data.error || 'Authentifizierung fehlgeschlagen.');
+        setShowResend(data.code === 'EMAIL_NOT_VERIFIED');
         return;
       }
 
       if (data.token) {
         localStorage.setItem('pflegedb_jwt_token', data.token);
       }
-
-      onLoginSuccess(data.user || {
-        name: fullName || email.split('@')[0] || 'Benutzer',
-        email,
-        role,
-        title: role === 'teacher' ? 'Lehrer / Administrator' : 'Pflegeschüler(in)',
-        avatar: role === 'teacher' ? '👨‍🏫' : '🎓'
-      });
-    } catch (err) {
+      onLoginSuccess(data.user);
+    } catch {
       setLoading(false);
-      // Fallback local authentication if offline
-      const isTeacher = email.toLowerCase().includes('lehrer') || role === 'teacher';
-      const fallbackUser = {
-        name: activeTab === 'register' ? fullName : (isTeacher ? 'Prof. Dr. Elisabeth Müller' : 'Alex Schmidt'),
-        email: email.trim(),
-        role: isTeacher ? 'teacher' : 'student',
-        title: isTeacher ? 'Lehrer / Administrator' : 'Pflegeschüler(in)',
-        avatar: isTeacher ? '👨‍🏫' : '🎓'
-      };
-      onLoginSuccess(fallbackUser);
+      setError('Server nicht erreichbar. Bitte versuche es erneut.');
     }
   };
 
+  const handleQuickLogin = (account) => {
+    setEmail(account.email);
+    setPassword(account.password);
+    submitLogin(account.email, account.password);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (activeTab === 'register' && registerStep === 1) {
+      handleNextStep();
+      return;
+    }
+
+    if (activeTab === 'login') {
+      await submitLogin(email, password);
+      return;
+    }
+
+    setError('');
+
+    if (role === 'teacher' && !institution.trim()) {
+      setError('Bitte gib deine Einrichtung (Schule/Klinik) an.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName.trim(), email: email.trim(), password: password.trim(), role,
+          specialty: (role === 'praxisanleiter' || role === 'teacher') ? specialty.trim() : undefined,
+          cohortYear: role === 'student' ? cohortYear.trim() : undefined,
+          institution: role === 'teacher' ? institution.trim() : undefined
+        })
+      });
+      const data = await res.json();
+      setLoading(false);
+
+      if (!res.ok || data.error) {
+        setError(data.error || 'Registrierung fehlgeschlagen.');
+        return;
+      }
+
+      setPendingMessage(data.message || 'Bitte bestätige deine E-Mail-Adresse, bevor du dich anmeldest.');
+    } catch {
+      setLoading(false);
+      setError('Server nicht erreichbar. Bitte versuche es erneut.');
+    }
+  };
+
+  const handleResend = async () => {
+    setResendState('sending');
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() })
+      });
+      await res.json();
+      setResendState('sent');
+    } catch {
+      setResendState('');
+    }
+  };
+
+  const isRegister = activeTab === 'register';
+  const headline = pendingMessage
+    ? 'Fast geschafft!'
+    : activeTab === 'login' ? 'Willkommen zurück' : (registerStep === 1 ? 'Konto erstellen' : 'Letzter Schritt');
+  const subheadline = pendingMessage
+    ? null
+    : activeTab === 'login' ? 'Melde dich an, um fortzufahren.' : (registerStep === 1 ? 'Schritt 1 von 2 — wer bist du?' : 'Schritt 2 von 2 — Zugangsdaten festlegen');
+
   return (
-    <div 
-      className="modal-overlay" 
-      onClick={onClose}
-      style={{ 
-        position: 'fixed', 
-        inset: 0, 
-        background: 'rgba(15, 23, 42, 0.7)', 
-        backdropFilter: 'blur(8px)', 
+    <div
+      className="modal-overlay"
+      onClick={handleClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(15, 23, 42, 0.7)',
+        backdropFilter: 'blur(8px)',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
@@ -164,237 +295,388 @@ function SecureAuthModal({ isOpen, onClose, onLoginSuccess }) {
         padding: '20px'
       }}
     >
-      <div 
-        className="modal-content" 
-        onClick={e => e.stopPropagation()} 
-        style={{ 
-          maxWidth: '440px', 
-          width: '100%', 
-          background: '#ffffff', 
-          borderRadius: '20px', 
-          padding: '36px 32px 28px 32px', 
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
-          position: 'relative',
-          border: '1px solid #e2e8f0',
-          textAlign: 'center'
-        }}
-      >
-        <button 
-          onClick={onClose} 
-          style={{ 
-            position: 'absolute', 
-            top: '20px', 
-            right: '20px', 
-            background: '#f1f5f9', 
-            border: 'none', 
-            borderRadius: '50%', 
-            width: '32px', 
-            height: '32px', 
-            fontSize: '1.2rem', 
-            color: '#64748b', 
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          &times;
-        </button>
-
-        <h2 style={{ margin: '0 0 6px 0', fontSize: '1.65rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
-          Secure Access
-        </h2>
-        <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '0.88rem' }}>
-          Anmelden oder Registrieren im Portal.
-        </p>
-
-        {/* Tab Segment Switcher */}
-        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '12px', padding: '4px', marginBottom: '22px' }}>
-          <button
-            type="button"
-            onClick={() => { setActiveTab('login'); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '8px 16px',
-              borderRadius: '9px',
-              border: 'none',
-              background: activeTab === 'login' ? '#ffffff' : 'transparent',
-              color: activeTab === 'login' ? '#0f172a' : '#64748b',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'login' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            Log In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab('register'); setError(''); }}
-            style={{
-              flex: 1,
-              padding: '8px 16px',
-              borderRadius: '9px',
-              border: 'none',
-              background: activeTab === 'register' ? '#ffffff' : 'transparent',
-              color: activeTab === 'register' ? '#0f172a' : '#64748b',
-              fontWeight: 700,
-              fontSize: '0.88rem',
-              cursor: 'pointer',
-              boxShadow: activeTab === 'register' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            Register
-          </button>
-        </div>
-
-        {error && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '16px', textAlign: 'left' }}>
-            ⚠️ {error}
-          </div>
-        )}
-
-        {/* Quick Fill Presets */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '18px' }}>
-          <button
-            type="button"
-            onClick={() => handleFillPreset('student')}
-            style={{ flex: 1, padding: '7px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 600, fontSize: '0.78rem', color: '#0284c7', cursor: 'pointer' }}
-          >
-            🎓 Demo Schüler
-          </button>
-          <button
-            type="button"
-            onClick={() => handleFillPreset('teacher')}
-            style={{ flex: 1, padding: '7px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 600, fontSize: '0.78rem', color: '#d97706', cursor: 'pointer' }}
-          >
-            👨‍🏫 Demo Lehrer
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
-          {activeTab === 'register' && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
-                Full Name
-              </label>
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>👤</span>
-                <input 
-                  type="text"
-                  placeholder="e.g. Alex Schmidt"
-                  value={fullName}
-                  onChange={e => setFullName(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
-                  required
-                />
-              </div>
+      <div className="pf-auth-shell" onClick={e => e.stopPropagation()}>
+        <div className="pf-auth-brand">
+          <div className="pf-auth-brand-top">
+            <div className="pf-auth-badge">
+              <Icon name="heart-pulse" size={26} color="#ffffff" />
             </div>
-          )}
-
-          <div style={{ marginBottom: '14px' }}>
-            <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
-              Institutional Email
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>✉️</span>
-              <input 
-                type="email"
-                placeholder="student@nursing.edu"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
-                required
-              />
+            <h2 style={{ margin: '0 0 8px 0', fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+              Pflege-Plattform
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>
+              Deine digitale Lernumgebung für die Pflegeausbildung.
+            </p>
+          </div>
+          <div className="pf-auth-brand-bottom">
+            <div className="pf-auth-feature">
+              <span className="pf-auth-feature-icon"><Icon name="shield" size={14} color="#ffffff" /></span>
+              Sichere, E-Mail-verifizierte Anmeldung
+            </div>
+            <div className="pf-auth-feature">
+              <span className="pf-auth-feature-icon"><Icon name="users" size={14} color="#ffffff" /></span>
+              Rollenbasierter Zugriff für dein Team
+            </div>
+            <div className="pf-auth-feature">
+              <span className="pf-auth-feature-icon"><Icon name="badge" size={14} color="#ffffff" /></span>
+              Fortschritt &amp; Zertifikate in Echtzeit
             </div>
           </div>
+        </div>
 
-          {activeTab === 'register' && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
-                Academic Role
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setRole('student')}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: role === 'student' ? '2px solid #0284c7' : '1px solid #cbd5e1', background: role === 'student' ? '#f0f9ff' : '#ffffff', fontWeight: 700, fontSize: '0.78rem', color: role === 'student' ? '#0369a1' : '#475569', cursor: 'pointer' }}
-                >
-                  🎓 Schüler
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('teacher')}
-                  style={{ flex: 1, padding: '8px', borderRadius: '8px', border: role === 'teacher' ? '2px solid #d97706' : '1px solid #cbd5e1', background: role === 'teacher' ? '#fffbeb' : '#ffffff', fontWeight: 700, fontSize: '0.78rem', color: role === 'teacher' ? '#b45309' : '#475569', cursor: 'pointer' }}
-                >
-                  👨‍🏫 Lehrer / Admin
-                </button>
-              </div>
-            </div>
+        <div className="pf-auth-panel">
+          <button className="pf-auth-close" type="button" onClick={handleClose}>&times;</button>
+
+          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+            {headline}
+          </h2>
+          {subheadline && (
+            <p style={{ margin: '0 0 20px 0', color: '#64748b', fontSize: '0.86rem' }}>{subheadline}</p>
           )}
 
-          <div style={{ marginBottom: '22px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontWeight: 700, fontSize: '0.8rem', color: '#334155', margin: 0 }}>
-                Password
-              </label>
-              {activeTab === 'login' && (
-                <a href="#" onClick={e => { e.preventDefault(); alert("Passwort-Zusendung für Pflegedatenbank gesendet."); }} style={{ fontSize: '0.78rem', color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>
-                  Forgot?
-                </a>
-              )}
-            </div>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>🔒</span>
-              <input 
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                style={{ width: '100%', padding: '10px 40px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none' }}
-                required
-              />
+          {pendingMessage ? (
+            <div>
+              <div style={{ fontSize: '2.4rem', margin: '10px 0 14px' }}>📬</div>
+              <p style={{ margin: '0 0 22px 0', color: '#334155', fontSize: '0.92rem', lineHeight: 1.5 }}>{pendingMessage}</p>
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#94a3b8' }}
+                onClick={() => { setPendingMessage(''); switchTab('login'); }}
+                style={{ width: '100%', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                Zum Login
               </button>
             </div>
+          ) : (
+          <>
+          <div className="pf-auth-tabs">
+            <button
+              type="button"
+              className="pf-auth-tab"
+              onClick={() => switchTab('login')}
+              style={{
+                background: activeTab === 'login' ? '#ffffff' : 'transparent',
+                color: activeTab === 'login' ? '#0f172a' : '#64748b',
+                boxShadow: activeTab === 'login' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              Anmelden
+            </button>
+            <button
+              type="button"
+              className="pf-auth-tab"
+              onClick={() => switchTab('register')}
+              style={{
+                background: activeTab === 'register' ? '#ffffff' : 'transparent',
+                color: activeTab === 'register' ? '#0f172a' : '#64748b',
+                boxShadow: activeTab === 'register' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+              }}
+            >
+              Registrieren
+            </button>
           </div>
 
-          <button 
-            type="submit" 
-            style={{ 
-              width: '100%', 
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', 
-              color: '#ffffff', 
-              border: 'none', 
-              borderRadius: '10px', 
-              padding: '12px', 
-              fontWeight: 800, 
-              fontSize: '0.95rem', 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
-            }}
-          >
-            <span>{activeTab === 'login' ? 'Authenticate' : 'Create Account'}</span>
-            <span>➔</span>
-          </button>
-        </form>
+          {isRegister && (
+            <div className="pf-auth-step-track">
+              <div style={{ background: '#0284c7' }} />
+              <div style={{ background: registerStep === 2 ? '#0284c7' : '#e2e8f0' }} />
+            </div>
+          )}
 
-        <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '24px', paddingTop: '16px', fontSize: '0.72rem', color: '#94a3b8', lineHeight: '1.4' }}>
-          By accessing this portal, you agree to the <br />
-          <a href="#" onClick={e => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'underline' }}>Academic Policy</a> and <a href="#" onClick={e => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'underline' }}>Clinical Privacy terms</a>.
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '10px 14px', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '16px', textAlign: 'left' }}>
+              ⚠️ {error}
+              {showResend && (
+                <div style={{ marginTop: '8px' }}>
+                  {resendState === 'sent' ? (
+                    <span style={{ color: '#166534', fontWeight: 700 }}>✓ Neuer Bestätigungslink wurde verschickt.</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={resendState === 'sending'}
+                      style={{ background: 'none', border: 'none', color: '#991b1b', fontWeight: 800, textDecoration: 'underline', cursor: resendState === 'sending' ? 'default' : 'pointer', padding: 0, fontSize: '0.82rem' }}
+                    >
+                      {resendState === 'sending' ? 'Wird gesendet…' : 'Verifizierungs-E-Mail erneut senden'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
+            {activeTab === 'login' && (
+              <>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                    E-Mail-Adresse
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>✉️</span>
+                    <input
+                      type="email"
+                      placeholder="name@pflege.de"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '22px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontWeight: 700, fontSize: '0.8rem', color: '#334155', margin: 0 }}>
+                      Passwort
+                    </label>
+                    <a href="#" onClick={e => { e.preventDefault(); alert("Passwort-Zusendung für Pflegedatenbank gesendet."); }} style={{ fontSize: '0.78rem', color: '#0284c7', textDecoration: 'none', fontWeight: 700 }}>
+                      Vergessen?
+                    </a>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>🔒</span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      style={{ width: '100%', padding: '10px 40px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#94a3b8' }}
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: 800, fontSize: '0.95rem', cursor: loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)', opacity: loading ? 0.7 : 1 }}
+                >
+                  <span>{loading ? 'Wird geprüft…' : 'Anmelden'}</span>
+                  {!loading && <span>➔</span>}
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '18px 0 12px 0' }}>
+                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>ODER SCHNELL TESTEN</span>
+                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  {DEMO_ACCOUNTS.map(acct => (
+                    <button
+                      key={acct.role}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => handleQuickLogin(acct)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 10px',
+                        borderRadius: '9px', border: '1.5px solid #e2e8f0', background: '#f8fafc',
+                        color: '#334155', fontWeight: 700, fontSize: '0.78rem', cursor: loading ? 'default' : 'pointer',
+                        textAlign: 'left', opacity: loading ? 0.6 : 1
+                      }}
+                      title={`Als ${acct.label} anmelden (${acct.email})`}
+                    >
+                      <span style={{ fontSize: '1rem' }}>{acct.icon}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acct.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {isRegister && registerStep === 1 && (
+              <>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '8px' }}>
+                    Deine Position
+                  </label>
+                  <div className="pf-auth-role-grid">
+                    {REGISTER_ROLE_OPTIONS.map(opt => (
+                      <div
+                        key={opt.r}
+                        role="button"
+                        tabIndex={0}
+                        className="pf-auth-role-card"
+                        onClick={() => setRole(opt.r)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setRole(opt.r); }}
+                        style={{ borderColor: role === opt.r ? opt.activeColor : '#e2e8f0', background: role === opt.r ? opt.activeBg : '#ffffff', boxShadow: role === opt.r ? '0 4px 14px rgba(0,0,0,0.08)' : 'none' }}
+                      >
+                        <span className="pf-auth-role-icon" style={{ background: role === opt.r ? opt.activeColor : '#f1f5f9' }}>
+                          <Icon name={opt.icon} size={18} color={role === opt.r ? '#ffffff' : '#64748b'} />
+                        </span>
+                        <span style={{ fontWeight: 800, fontSize: '0.78rem', color: role === opt.r ? opt.activeColor : '#0f172a' }}>{opt.label}</span>
+                        <span style={{ fontSize: '0.66rem', color: '#94a3b8' }}>{opt.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                    Vollständiger Name
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>👤</span>
+                    <input
+                      type="text"
+                      placeholder="z.B. Alex Schmidt"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                    E-Mail-Adresse
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>✉️</span>
+                    <input
+                      type="email"
+                      placeholder="name@pflege.de"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  style={{ width: '100%', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: 800, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)' }}
+                >
+                  <span>Weiter</span>
+                  <span>➔</span>
+                </button>
+              </>
+            )}
+
+            {isRegister && registerStep === 2 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBackStep}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#64748b', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', padding: 0, marginBottom: '16px' }}
+                >
+                  <Icon name="arrowleft" size={13} /> Zurück
+                </button>
+
+                {role === 'student' && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                      Jahrgang / Kohorte
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 2026"
+                      value={cohortYear}
+                      onChange={e => setCohortYear(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )}
+
+                {role === 'praxisanleiter' && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                      Fachbereich
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="z.B. Intensivstation"
+                      value={specialty}
+                      onChange={e => setSpecialty(e.target.value)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                )}
+
+                {role === 'teacher' && (
+                  <>
+                    <div style={{ marginBottom: '14px' }}>
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                        Einrichtung (Schule / Klinik) *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="z.B. Berufsfachschule für Pflege München"
+                        value={institution}
+                        onChange={e => setInstitution(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: '14px' }}>
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                        Unterrichtsfach / Fachbereich
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="z.B. Innere Medizin"
+                        value={specialty}
+                        onChange={e => setSpecialty(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div style={{ marginBottom: '6px' }}>
+                  <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#334155', marginBottom: '6px' }}>
+                    Passwort
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', color: '#94a3b8' }}>🔒</span>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      minLength={6}
+                      style={{ width: '100%', padding: '10px 40px 10px 36px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#94a3b8' }}
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.7rem', color: '#94a3b8' }}>Mindestens 6 Zeichen.</p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ width: '100%', marginTop: '16px', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', border: 'none', borderRadius: '10px', padding: '12px', fontWeight: 800, fontSize: '0.95rem', cursor: loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)', opacity: loading ? 0.7 : 1 }}
+                >
+                  <span>{loading ? 'Wird erstellt…' : 'Konto erstellen'}</span>
+                  {!loading && <span>➔</span>}
+                </button>
+              </>
+            )}
+          </form>
+
+          <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '22px', paddingTop: '14px', fontSize: '0.7rem', color: '#94a3b8', lineHeight: '1.4' }}>
+            Mit der Nutzung dieses Portals akzeptierst du die <a href="#" onClick={e => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'underline' }}>Nutzungsrichtlinien</a> und den <a href="#" onClick={e => e.preventDefault()} style={{ color: '#64748b', textDecoration: 'underline' }}>Datenschutz</a>.
+          </div>
+          </>
+          )}
         </div>
       </div>
+      <style>{AUTH_MODAL_CSS}</style>
     </div>
   );
 }
@@ -402,137 +684,7 @@ function SecureAuthModal({ isOpen, onClose, onLoginSuccess }) {
 // ==========================================
 // 3. REUSABLE USER PROFILE & LOGIN/LOGOUT MENU
 // ==========================================
-function UserProfileMenu({ userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const isTeacher = userRole === 'teacher';
-
-  const handleProfileClick = (e) => {
-    e.stopPropagation();
-    if (!currentUser) {
-      if (onOpenAuthModal) onOpenAuthModal();
-    } else {
-      setIsOpen(!isOpen);
-    }
-  };
-
-  return (
-    <div style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={handleProfileClick}
-        style={{
-          width: '38px',
-          height: '38px',
-          borderRadius: '50%',
-          background: currentUser ? (isTeacher ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' : 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)') : 'rgba(255,255,255,0.25)',
-          color: '#ffffff',
-          border: '2px solid rgba(255,255,255,0.5)',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '1.1rem',
-          fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-        }}
-        title={currentUser ? `${currentUser.name} (${currentUser.title})` : "Login / Register"}
-      >
-        {currentUser ? (isTeacher ? '👨‍🏫' : '🎓') : '👤'}
-      </button>
-
-      {isOpen && currentUser && (
-        <div 
-          style={{
-            position: 'absolute',
-            top: '46px',
-            right: 0,
-            width: '240px',
-            background: '#ffffff',
-            borderRadius: '12px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #cbd5e1',
-            padding: '16px',
-            zIndex: 9999,
-            color: '#0f172a',
-            textAlign: 'left'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem' }}>
-              {isTeacher ? '👨‍🏫' : '🎓'}
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
-                {currentUser.name}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                {currentUser.title}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>Rolle wechseln (Test-Pilot)</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {[
-                { r: 'teacher', name: '👨‍🏫 Lehrer / Pflegedozent', title: 'Lehrer / Administrator' },
-                { r: 'student', name: '🎓 Pflegeschüler', title: 'Pflegeschüler(in)' }
-              ].map(opt => (
-                <button
-                  key={opt.r}
-                  type="button"
-                  onClick={() => {
-                    if (setUserRole) setUserRole(opt.r);
-                    if (setCurrentUser) setCurrentUser(prev => prev ? ({ ...prev, role: opt.r, title: opt.title, avatar: opt.name.split(' ')[0] }) : null);
-                    setIsOpen(false);
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    background: userRole === opt.r ? '#0052cc' : '#f8fafc',
-                    color: userRole === opt.r ? '#ffffff' : '#334155',
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    textAlign: 'left',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {opt.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (setCurrentUser) setCurrentUser(null);
-              setIsOpen(false);
-            }}
-            style={{
-              width: '100%',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#991b1b',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            🔒 Abmelden (Logout)
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 function InfoModal({ app, onClose }) {
   if (!app) return null;
   return (
@@ -819,7 +971,7 @@ function DialogView({ onHome }) {
 // --- KALENDER (Calendar) imported from ./CalendarView ---
 
 // --- MITARBEITER (Nursing Documentation) ---
-function MitarbeiterView({ data, viewMode, setViewMode, onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal, onLaunchApp }) {
+function MitarbeiterView({ data, viewMode, setViewMode, onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const filteredMitarbeiter = useMemo(() => {
@@ -844,13 +996,10 @@ function MitarbeiterView({ data, viewMode, setViewMode, onHome, userRole, setUse
           <nav className="module-nav">
             <a href="#" className="active" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Employees</a>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Departments</a>
-            {userRole === 'teacher' && (
-              <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLaunchApp('admin_panel'); }} style={{ color: '#ffc107', fontWeight: 600 }}>⚙️ Lehrer-Konfig</a>
-            )}
           </nav>
         </div>
         <div className="module-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
+          <UserProfileMenu userRole={userRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} onOpenAvatarPicker={onOpenAvatarPicker} />
         </div>
       </header>
 
@@ -902,7 +1051,7 @@ function MitarbeiterView({ data, viewMode, setViewMode, onHome, userRole, setUse
 }
 
 // --- PFLEGEHEUTE ---
-function PflegeheuteView({ onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal, onLaunchApp }) {
+function PflegeheuteView({ onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   return (
     <div className="module-view-container">
       {/* Top Navbar */}
@@ -916,13 +1065,10 @@ function PflegeheuteView({ onHome, userRole, setUserRole, currentUser, setCurren
             <a href="#" className="active" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Pflegeheute</a>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Lektionen</a>
             <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Ergebnisse</a>
-            {userRole === 'teacher' && (
-              <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLaunchApp('admin_panel'); }} style={{ color: '#ffc107', fontWeight: 600 }}>⚙️ Lehrer-Konfig</a>
-            )}
           </nav>
         </div>
         <div className="module-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
+          <UserProfileMenu userRole={userRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} onOpenAvatarPicker={onOpenAvatarPicker} />
         </div>
       </header>
 
@@ -935,7 +1081,7 @@ function PflegeheuteView({ onHome, userRole, setUserRole, currentUser, setCurren
 }
 
 // --- MEDIKAMENTE (Medication Lookup Portal) ---
-function MedikamenteView({ onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal, onLaunchApp }) {
+function MedikamenteView({ onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   return (
     <div className="module-view-container dark">
       {/* Top Navbar */}
@@ -945,16 +1091,9 @@ function MedikamenteView({ onHome, userRole, setUserRole, currentUser, setCurren
             <LogoMedikamente />
           </div>
           <span className="module-name">Medikamente</span>
-          <nav className="module-nav">
-            <a href="#" className="active" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Wirkstoffsuche</a>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Offline-Katalog</a>
-            {userRole === 'teacher' && (
-              <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLaunchApp('admin_panel'); }} style={{ color: '#ffc107', fontWeight: 600 }}>⚙️ Lehrer-Konfig</a>
-            )}
-          </nav>
         </div>
         <div className="module-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
+          <UserProfileMenu userRole={userRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} onOpenAvatarPicker={onOpenAvatarPicker} />
         </div>
       </header>
 
@@ -967,39 +1106,8 @@ function MedikamenteView({ onHome, userRole, setUserRole, currentUser, setCurren
 }
 
 // --- ANATOMIE (Human Anatomy Model Explorer) ---
-function AnatomieView({ onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal, onLaunchApp }) {
-  return (
-    <div className="module-view-container">
-      {/* Top Navbar */}
-      <header className="module-topbar">
-        <div className="module-topbar-left" onClick={onHome} style={{ cursor: 'pointer' }} title="Zurück zur Startseite">
-          <div className="module-logo" style={{ color: 'var(--primary)', fill: 'currentColor' }}>
-            <LogoAnatomie />
-          </div>
-          <span className="module-name">Anatomie</span>
-          <nav className="module-nav">
-            <a href="#" className="active" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Körpermodell</a>
-            <a href="#" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>Klinische Relevanz</a>
-            {userRole === 'teacher' && (
-              <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLaunchApp('admin_panel'); }} style={{ color: '#ffc107', fontWeight: 600 }}>⚙️ Lehrer-Konfig</a>
-            )}
-          </nav>
-        </div>
-        <div className="module-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="module-workspace" style={{ padding: 0 }}>
-        <Anatomie onHome={onHome} />
-      </main>
-    </div>
-  );
-}
-
 // --- OTHER DEMO APPS PLACEHOLDER VIEW ---
-function PlaceholderView({ activeTab, onHome, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal }) {
+function PlaceholderView({ activeTab, onHome, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   const label = useMemo(() => {
     const app = ALL_APPS.find(a => a.id === activeTab);
     return app ? app.label : 'Modul';
@@ -1026,7 +1134,7 @@ function PlaceholderView({ activeTab, onHome, userRole, setUserRole, currentUser
           </nav>
         </div>
         <div className="module-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
+          <UserProfileMenu userRole={userRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} onOpenAvatarPicker={onOpenAvatarPicker} />
         </div>
       </header>
 
@@ -1049,7 +1157,7 @@ function PlaceholderView({ activeTab, onHome, userRole, setUserRole, currentUser
 // ==========================================
 // 4. HOME SWITCHER COMPONENT
 // ==========================================
-function HomeLauncher({ onLaunchApp, userRole, setUserRole, currentUser, setCurrentUser, onOpenAuthModal }) {
+function HomeLauncher({ onLaunchApp, userRole, currentUser, setCurrentUser, onOpenAuthModal, onOpenAvatarPicker }) {
   const [launcherSearch, setLauncherSearch] = useState('');
   const [selectedDemoApp, setSelectedDemoApp] = useState(null);
   const searchInputRef = useRef(null);
@@ -1071,12 +1179,17 @@ function HomeLauncher({ onLaunchApp, userRole, setUserRole, currentUser, setCurr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const visibleApps = useMemo(
+    () => ALL_APPS.filter(app => !app.adminOnly || userRole === 'admin'),
+    [userRole]
+  );
+
   const filteredApps = useMemo(() => {
-    if (!launcherSearch.trim()) return ALL_APPS;
-    return ALL_APPS.filter(app =>
+    if (!launcherSearch.trim()) return visibleApps;
+    return visibleApps.filter(app =>
       app.label.toLowerCase().includes(launcherSearch.toLowerCase())
     );
-  }, [launcherSearch]);
+  }, [launcherSearch, visibleApps]);
 
   const handleAppClick = (app) => {
     if (app.active) {
@@ -1091,7 +1204,7 @@ function HomeLauncher({ onLaunchApp, userRole, setUserRole, currentUser, setCurr
       {/* Topbar header */}
       <header className="home-topbar">
         <div className="home-topbar-right">
-          <UserProfileMenu userRole={userRole} setUserRole={setUserRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} />
+          <UserProfileMenu userRole={userRole} currentUser={currentUser} setCurrentUser={setCurrentUser} onOpenAuthModal={onOpenAuthModal} onOpenAvatarPicker={onOpenAvatarPicker} />
         </div>
       </header>
 
@@ -1156,15 +1269,48 @@ function App() {
   const [activeTab, setActiveTab] = useState('students');
   const [viewMode, setViewMode] = useState('kanban');
   const [userRole, setUserRole] = useState('student');
-  const [currentUser, setCurrentUser] = useState({
-    id: 'usr-stud-1',
-    name: 'Alex Schmidt',
-    email: 'schueler@pflege.de',
-    role: 'student',
-    title: 'Pflegeschüler(in)',
-    avatar: '🎓'
-  });
+  const [currentUser, setCurrentUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  // Set when another page (e.g. Klassenzimmer's "Video-Unterricht starten") wants LetsMeet to
+  // open straight into a specific room instead of its own dashboard — consumed once, then cleared.
+  const [pendingMeetJoinCode, setPendingMeetJoinCode] = useState(null);
+
+  const goToMeeting = (roomCode) => {
+    setPendingMeetJoinCode(roomCode);
+    setActiveTab('letsmeet');
+    setIsHome(false);
+  };
+
+  // If we arrived via an email confirmation link (?verify=<token>), confirm it and log in.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const verifyToken = params.get('verify');
+    if (!verifyToken) return;
+
+    fetch('/api/auth/confirm-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: verifyToken })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.token && data.user) {
+          localStorage.setItem('pflegedb_jwt_token', data.token);
+          setCurrentUser(data.user);
+          setUserRole(data.user.role || 'student');
+          setShowAvatarPicker(true);
+        } else {
+          alert(data.error || 'Bestätigung fehlgeschlagen.');
+        }
+      })
+      .catch(() => alert('Bestätigung fehlgeschlagen — Server nicht erreichbar.'))
+      .finally(() => {
+        params.delete('verify');
+        const cleanUrl = window.location.pathname + (params.toString() ? `?${params}` : '') + window.location.hash;
+        window.history.replaceState({}, '', cleanUrl);
+      });
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('pflegedb_jwt_token');
@@ -1172,7 +1318,14 @@ function App() {
       fetch('/api/auth/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          // Token rejected (expired, deactivated account, ...) — stop pretending we're signed in.
+          localStorage.removeItem('pflegedb_jwt_token');
+          throw new Error('session invalid');
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.user) {
           setCurrentUser(data.user);
@@ -1183,18 +1336,35 @@ function App() {
     }
   }, []);
 
+  // Auto-logout after IDLE_TIMEOUT_MS of no interaction, per the "automatic session timeout" requirement.
+  useEffect(() => {
+    let idleTimer = setTimeout(handleIdleLogout, IDLE_TIMEOUT_MS);
+
+    function handleIdleLogout() {
+      if (localStorage.getItem('pflegedb_jwt_token')) {
+        localStorage.removeItem('pflegedb_jwt_token');
+        setCurrentUser(null);
+        alert('Du wurdest wegen Inaktivität automatisch abgemeldet.');
+      }
+    }
+
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(handleIdleLogout, IDLE_TIMEOUT_MS);
+    }
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll'];
+    events.forEach(evt => window.addEventListener(evt, resetIdleTimer));
+    return () => {
+      clearTimeout(idleTimer);
+      events.forEach(evt => window.removeEventListener(evt, resetIdleTimer));
+    };
+  }, []);
+
   const handleLoginSuccess = (userObj) => {
     setCurrentUser(userObj);
     setUserRole(userObj.role || 'student');
     setShowAuthModal(false);
-  };
-
-  const handleUpdateUserRole = (userId, newRole) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-    if (currentUser?.id === userId) {
-      setCurrentUser(prev => ({ ...prev, role: newRole }));
-      setUserRole(newRole);
-    }
   };
 
   const handleAddAssignment = (newAssignment) => {
@@ -1226,7 +1396,8 @@ function App() {
     setUserRole,
     currentUser,
     setCurrentUser,
-    onOpenAuthModal: () => setShowAuthModal(true)
+    onOpenAuthModal: () => setShowAuthModal(true),
+    onOpenAvatarPicker: () => setShowAvatarPicker(true)
   };
 
   let content = null;
@@ -1247,56 +1418,75 @@ function App() {
         data={allData} 
         viewMode={viewMode} 
         setViewMode={setViewMode} 
-        onHome={() => setIsHome(true)} 
+        onHome={() => setIsHome(true)}
         {...userProps}
-        onLaunchApp={(id) => setActiveTab(id)}
       />
     );
   } else if (activeTab === 'pflegeheute') {
     content = (
-      <PflegeheuteView 
-        onHome={() => setIsHome(true)} 
+      <PflegeheuteView
+        onHome={() => setIsHome(true)}
         {...userProps}
         user={currentUser}
-        onLaunchApp={(id) => setActiveTab(id)}
       />
     );
   } else if (activeTab === 'medikamente') {
     content = (
-      <MedikamenteView 
-        onHome={() => setIsHome(true)} 
+      <MedikamenteView
+        onHome={() => setIsHome(true)}
         {...userProps}
-        onLaunchApp={(id) => setActiveTab(id)}
       />
     );
-  } else if (activeTab === 'anatomie') {
+  } else if (activeTab === 'account_admin') {
     content = (
-      <AnatomieView 
-        onHome={() => setIsHome(true)} 
-        {...userProps}
-        onLaunchApp={(id) => setActiveTab(id)}
-      />
-    );
-  } else if (activeTab === 'admin_panel') {
-    content = (
-      <AdminPanel 
-        onHome={() => setIsHome(true)} 
+      <AccountAdminPanel
+        onHome={() => setIsHome(true)}
+        currentUser={currentUser}
       />
     );
   } else if (activeTab === 'project') {
     content = (
-      <ClassroomView 
+      <ClassroomView
         onHome={() => setIsHome(true)}
         {...userProps}
-        user={currentUser}
+        onJoinMeeting={goToMeeting}
+      />
+    );
+  } else if (activeTab === 'letsmeet') {
+    content = (
+      <LetsMeetView
+        onHome={() => setIsHome(true)}
+        {...userProps}
+        initialRoomCode={pendingMeetJoinCode}
+        onConsumedInitialRoomCode={() => setPendingMeetJoinCode(null)}
+      />
+    );
+  } else if (activeTab === 'docreate') {
+    content = (
+      <DocreateView
+        onHome={() => setIsHome(true)}
+        {...userProps}
+      />
+    );
+  } else if (activeTab === 'letszeichnen') {
+    content = (
+      <LetsZeichnenView
+        onHome={() => setIsHome(true)}
+        {...userProps}
+      />
+    );
+  } else if (activeTab === 'devicetraining') {
+    content = (
+      <DeviceTrainingView
+        onHome={() => setIsHome(true)}
+        {...userProps}
       />
     );
   } else if (activeTab === 'elearning') {
     content = (
-      <ELearningCertificates 
+      <ELearningCertificates
         onHome={() => setIsHome(true)}
         {...userProps}
-        user={currentUser}
       />
     );
   } else if (activeTab === 'dashboard') {
@@ -1359,10 +1549,16 @@ function App() {
   return (
     <>
       {content}
-      <SecureAuthModal 
+      <SecureAuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onLoginSuccess={handleLoginSuccess}
+      />
+      <AvatarPicker
+        isOpen={showAvatarPicker}
+        onClose={() => setShowAvatarPicker(false)}
+        currentUser={currentUser}
+        onSaved={(updatedUser) => { setCurrentUser(updatedUser); setShowAvatarPicker(false); }}
       />
     </>
   );

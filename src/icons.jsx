@@ -231,18 +231,21 @@ export const LogoInvoicing = () => (
   </svg>
 );
 
-// 13. Projekt (Project)
-export const LogoProject = () => (
+// 13. Klassenzimmer (Classroom) — a graduation cap mark, used on both the home tile and the
+// Klassenzimmer page header so the two stay visually tied together.
+export const LogoKlassenzimmer = () => (
   <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-      <linearGradient id="projGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#701A75" />
-        <stop offset="100%" stopColor="#4A044E" />
+      <linearGradient id="kzGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#0EA5E9" />
+        <stop offset="100%" stopColor="#0C4A6E" />
       </linearGradient>
     </defs>
-    <rect width="64" height="64" rx="16" fill="url(#projGrad)" />
-    <path d="M18 32L28 42L48 20" stroke="#22D3EE" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M30 14C30 14 36 22 36 25C36 28.3137 33.3137 31 30 31C26.6863 31 24 28.3137 24 25C24 22 30 14 30 14Z" fill="#EC4899" />
+    <rect width="64" height="64" rx="16" fill="url(#kzGrad)" />
+    <path d="M32 15L55 26L32 37L9 26L32 15Z" fill="#ffffff" />
+    <path d="M20 30.5V40C20 40 25 45.5 32 45.5C39 45.5 44 40 44 40V30.5" stroke="#7DD3FC" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M50.5 27.5V39" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="50.5" cy="42" r="2.8" fill="#FACC15" />
   </svg>
 );
 
@@ -420,5 +423,84 @@ export const LogoPflegeDiktat = () => (
 );
 export const LogoAudibleDoku = LogoPflegeDiktat;
 export const LogoPflegeDikat = LogoPflegeDiktat;
+
+// 24. LetsMeet (real-time video calls — classes & appointments, powered by LiveKit)
+export const LogoLetsMeet = () => (
+  <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="letsmeetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#3B82F6" />
+        <stop offset="100%" stopColor="#1D4ED8" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="16" fill="url(#letsmeetGrad)" />
+    <rect x="9" y="20" width="30" height="24" rx="6" fill="#ffffff" />
+    <path d="M44 27L55 19.5V44.5L44 37V27Z" fill="#ffffff" />
+    <circle cx="49" cy="15" r="5" fill="#FBBF24" />
+  </svg>
+);
+
+// LetsZeichnen (whiteboard/sketching, built on Excalidraw's real drawing engine)
+export const LogoLetsZeichnen = () => (
+  <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="letszeichnenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#8B7CF6" />
+        <stop offset="100%" stopColor="#5B4FCF" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="16" fill="url(#letszeichnenGrad)" />
+    <path d="M14 40 Q 22 26, 32 34 T 50 24" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round" fill="none" opacity="0.85" />
+    <rect x="12" y="12" width="16" height="12" rx="2" stroke="#ffffff" strokeWidth="2" fill="none" opacity="0.6" transform="rotate(-6 20 18)" />
+    <path d="M37 41L47 31C48.1 29.9 49.9 29.9 51 31C52.1 32.1 52.1 33.9 51 35L41 45L35 47L37 41Z" fill="#ffffff" />
+  </svg>
+);
+
+// Gerätetraining (bedside monitor / defib / pacer simulator, inspired by Infirmary Integrated)
+export const LogoDeviceTraining = () => (
+  <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="deviceTrainingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F2528C" />
+        <stop offset="100%" stopColor="#A6134A" />
+      </linearGradient>
+      <linearGradient id="deviceTrainingScreen" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#1A222C" />
+        <stop offset="100%" stopColor="#0B0F14" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="16" fill="url(#deviceTrainingGrad)" />
+    <rect x="8" y="12" width="48" height="33" rx="5" fill="url(#deviceTrainingScreen)" />
+    <rect x="8" y="12" width="48" height="33" rx="5" stroke="#ffffff" strokeOpacity="0.12" />
+    <path d="M11 29h6 Q19 22 21 29 h4 l3 -16 l4 22 l3.5 -13 Q38 18 42 29 h11"
+      stroke="#3CFF7A" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <circle cx="46" cy="18" r="2.4" fill="#3CFF7A" opacity="0.95" />
+    <circle cx="9" cy="52" r="3.2" fill="#ffffff" opacity="0.55" />
+    <circle cx="19" cy="52" r="3.2" fill="#ffffff" opacity="0.85" />
+    <circle cx="29" cy="52" r="3.2" fill="#ffffff" opacity="0.55" />
+    <circle cx="48" cy="47" r="12.5" fill="#ffffff" />
+    <circle cx="48" cy="47" r="12.5" fill="none" stroke="#A6134A" strokeOpacity="0.15" strokeWidth="1" />
+    <path d="M50 37.5 L42.5 49 H47.5 L45.5 56.5 L54 44.5 H49 Z" fill="#D6194E" />
+  </svg>
+);
+
+// Docreate (presentations, built on DeckDeckGo's real slide-deck web components)
+export const LogoDocreate = () => (
+  <svg viewBox="0 0 64 64" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="docreateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#F97316" />
+        <stop offset="100%" stopColor="#C2410C" />
+      </linearGradient>
+    </defs>
+    <rect width="64" height="64" rx="16" fill="url(#docreateGrad)" />
+    <rect x="10" y="12" width="36" height="24" rx="3" fill="#ffffff" />
+    <rect x="14" y="17" width="14" height="4" rx="1.5" fill="#F97316" fillOpacity="0.35" />
+    <rect x="14" y="24" width="28" height="2.4" rx="1.2" fill="#F97316" fillOpacity="0.5" />
+    <rect x="14" y="29" width="20" height="2.4" rx="1.2" fill="#F97316" fillOpacity="0.3" />
+    <rect x="20" y="40" width="24" height="16" rx="3" fill="#ffffff" stroke="#C2410C" strokeWidth="1.5" />
+    <path d="M25 48h14M25 52h9" stroke="#F97316" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
 
 
